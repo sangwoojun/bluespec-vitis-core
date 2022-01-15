@@ -21,6 +21,15 @@ module mkKernelTop (KernelTopIfc);
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
 	Axi4MemoryMasterIfc#(64,512) axi4mem <- mkAxi4MemoryMaster;
 
+	Reg#(Bool) started <- False;
+	rule checkscalar;
+		if ( axi4control.ap_start ) started <= True;
+		if (started && axi4control.scalar00 > 0 ) begin
+			axi4control.ap_done(True);
+			started <= False;
+		end
+	endrule
+
 	interface m00_axi = axi4mem.pins;
 	interface s_axi_control = axi4control.pins;
 	interface interrupt = axi4control.interrupt;

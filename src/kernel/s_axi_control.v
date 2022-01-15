@@ -31,8 +31,11 @@ module s_axi4_lite_controller
     output wire                          interrupt,
     output wire                          ap_start,
     input  wire                          ap_done,
+    input  wire                          ap_done_en,
     input  wire                          ap_ready,
+    input  wire                          ap_ready_en,
     input  wire                          ap_idle,
+    input  wire                          ap_idle_en,
     output wire [31:0]                   scalar00,
     output wire [63:0]                   mem
 );
@@ -257,7 +260,7 @@ always @(posedge ACLK) begin
     else if (ACLK_EN) begin
         if (w_hs && waddr == ADDR_AP_CTRL && WSTRB[0] && WDATA[0])
             int_ap_start <= 1'b1;
-        else if (ap_ready)
+        else if (ap_ready_en)
             int_ap_start <= int_auto_restart; // clear on handshake/auto restart
     end
 end
@@ -267,7 +270,7 @@ always @(posedge ACLK) begin
     if (ARESET)
         int_ap_done <= 1'b0;
     else if (ACLK_EN) begin
-        if (ap_done)
+        if (ap_done_en)
             int_ap_done <= 1'b1;
         else if (ar_hs && raddr == ADDR_AP_CTRL)
             int_ap_done <= 1'b0; // clear on read
@@ -279,7 +282,7 @@ always @(posedge ACLK) begin
     if (ARESET)
         int_ap_idle <= 1'b0;
     else if (ACLK_EN) begin
-            int_ap_idle <= ap_idle;
+            int_ap_idle <= ap_idle_en;
     end
 end
 
@@ -288,7 +291,7 @@ always @(posedge ACLK) begin
     if (ARESET)
         int_ap_ready <= 1'b0;
     else if (ACLK_EN) begin
-            int_ap_ready <= ap_ready;
+            int_ap_ready <= ap_ready_en;
     end
 end
 
@@ -327,7 +330,7 @@ always @(posedge ACLK) begin
     if (ARESET)
         int_isr[0] <= 1'b0;
     else if (ACLK_EN) begin
-        if (int_ier[0] & ap_done)
+        if (int_ier[0] & ap_done_en)
             int_isr[0] <= 1'b1;
         else if (w_hs && waddr == ADDR_ISR && WSTRB[0])
             int_isr[0] <= int_isr[0] ^ WDATA[0]; // toggle on write
@@ -339,7 +342,7 @@ always @(posedge ACLK) begin
     if (ARESET)
         int_isr[1] <= 1'b0;
     else if (ACLK_EN) begin
-        if (int_ier[1] & ap_ready)
+        if (int_ier[1] & ap_ready_en)
             int_isr[1] <= 1'b1;
         else if (w_hs && waddr == ADDR_ISR && WSTRB[0])
             int_isr[1] <= int_isr[1] ^ WDATA[1]; // toggle on write

@@ -286,7 +286,7 @@ int main(int argc, char* argv[])
     // Set the arguments to our compute kernel
     // int vector_length = MAX_LENGTH;
     err = 0;
-    cl_uint d_scalar00 = 0;
+    cl_uint d_scalar00 = 100;
     err |= clSetKernelArg(kernel, 0, sizeof(cl_uint), &d_scalar00); // Not used in example RTL logic.
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_A); 
     //err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_B); 

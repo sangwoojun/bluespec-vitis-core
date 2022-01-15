@@ -40,14 +40,6 @@ interface Axi4LiteControllerXrtPinsIfc#(numeric type addrSz, numeric type dataSz
 	(* always_ready, result="rresp" *) method Bit #(2) rresp;
 	(* always_ready, result="rdata" *) method Bit #(dataSz) rdata;
 	
-	(* always_ready, result="ap_start" *) method Bool ap_start;
-	(* always_ready, always_enabled, prefix="" *)
-	method Action ap_done((*port="ap_done"*)Bool ap_done);
-	(* always_ready, always_enabled, prefix="" *)
-	method Action ap_ready((*port="ap_ready"*)Bool ap_ready);
-	(* always_ready, always_enabled, prefix="" *)
-	method Action ap_idle((*port="ap_idle"*)Bool ap_idle);
-	
 endinterface
 
 interface Axi4LiteControllerXrtIfc#(numeric type addrSz, numeric type dataSz);
@@ -59,6 +51,16 @@ interface Axi4LiteControllerXrtIfc#(numeric type addrSz, numeric type dataSz);
 
 	method Bit#(32) scalar00;
 	method Bit#(64) mem_addr;
+	
+	//(* result="ap_start" *) 
+	method Bool ap_start;
+	(* always_ready, prefix="" *)
+	method Action ap_done((*port="ap_done"*)Bool ap_done);
+	(* always_ready, prefix="" *)
+	method Action ap_ready((*port="ap_ready"*)Bool ap_ready);
+	(* always_ready, prefix="" *)
+	method Action ap_idle((*port="ap_idle"*)Bool ap_idle);
+	
 endinterface
 
 import "BVI" s_axi4_lite_controller =
@@ -101,10 +103,6 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 		method RRESP rresp() reset_by(arst) clocked_by(aclk);
 		method RDATA rdata() reset_by(arst) clocked_by(aclk);
 	
-		method ap_start ap_start()  reset_by(arst) clocked_by(aclk);
-		method ap_done(ap_done) enable((*inhigh*) ap_done_en) clocked_by(aclk) reset_by(arst);
-		method ap_ready(ap_ready) enable((*inhigh*) ap_ready_en) clocked_by(aclk) reset_by(arst);
-		method ap_idle(ap_idle) enable((*inhigh*) ap_idle_en) clocked_by(aclk) reset_by(arst);
 	endinterface
 		
 	method interrupt interrupt() reset_by(arst) clocked_by(aclk);
@@ -112,6 +110,10 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 	method scalar00 scalar00() reset_by(arst) clocked_by(aclk);
 	method mem mem_addr() reset_by(arst) clocked_by(aclk);
 	
+	method ap_start ap_start()  reset_by(arst) clocked_by(aclk);
+	method ap_done(ap_done) enable(ap_done_en) clocked_by(aclk) reset_by(arst);
+	method ap_ready(ap_ready) enable(ap_ready_en) clocked_by(aclk) reset_by(arst);
+	method ap_idle(ap_idle) enable(ap_idle_en) clocked_by(aclk) reset_by(arst);
 
 	schedule (
 		pins_write_address, pins_write_address_valid, pins_awready,
@@ -121,7 +123,7 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 		pins_rvalid, pins_read_data_ready, pins_rresp, pins_rdata,
 		interrupt,
 		scalar00,mem_addr,
-		pins_ap_start, pins_ap_done, pins_ap_ready, pins_ap_idle
+		ap_start, ap_done, ap_ready, ap_idle
 		) CF (
 		pins_write_address, pins_write_address_valid, pins_awready,
 		pins_write_data, pins_write_data_valid, pins_write_data_strb, pins_wready,
@@ -130,7 +132,7 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 		pins_rvalid, pins_read_data_ready, pins_rresp, pins_rdata,
 		interrupt,
 		scalar00,mem_addr,
-		pins_ap_start, pins_ap_done, pins_ap_ready, pins_ap_idle
+		ap_start, ap_done, ap_ready, ap_idle
 		);
 	
 endmodule
