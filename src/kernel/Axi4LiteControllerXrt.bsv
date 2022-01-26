@@ -55,11 +55,11 @@ interface Axi4LiteControllerXrtIfc#(numeric type addrSz, numeric type dataSz);
 	//(* result="ap_start" *) 
 	method Bool ap_start;
 	(* always_ready, prefix="" *)
-	method Action ap_done((*port="ap_done"*)Bool ap_done);
+	method Action ap_done();
 	(* always_ready, prefix="" *)
-	method Action ap_ready((*port="ap_ready"*)Bool ap_ready);
+	method Action ap_ready();
 	(* always_ready, prefix="" *)
-	method Action ap_idle((*port="ap_idle"*)Bool ap_idle);
+	method Action ap_idle();
 	
 endinterface
 
@@ -111,9 +111,9 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 	method mem mem_addr() reset_by(arst) clocked_by(aclk);
 	
 	method ap_start ap_start()  reset_by(arst) clocked_by(aclk);
-	method ap_done(ap_done) enable(ap_done_en) clocked_by(aclk) reset_by(arst);
-	method ap_ready(ap_ready) enable(ap_ready_en) clocked_by(aclk) reset_by(arst);
-	method ap_idle(ap_idle) enable(ap_idle_en) clocked_by(aclk) reset_by(arst);
+	method ap_done() enable(ap_done) clocked_by(aclk) reset_by(arst);
+	method ap_ready() enable(ap_ready) clocked_by(aclk) reset_by(arst);
+	method ap_idle() enable(ap_idle) clocked_by(aclk) reset_by(arst);
 
 	schedule (
 		pins_write_address, pins_write_address_valid, pins_awready,

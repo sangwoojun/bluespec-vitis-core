@@ -84,7 +84,6 @@ int main(int argc, char* argv[])
     int h_data[MAX_LENGTH];                    // host memory for input vector
     char cl_platform_vendor[1001];
     const char* target_device_name =  argv[2];
-      int h_A_output[MAX_LENGTH];                   // host memory for output vector
     cl_mem d_A;                         // device memory used for a vector
 
     int h_B_output[MAX_LENGTH];                   // host memory for output vector
@@ -98,12 +97,9 @@ int main(int argc, char* argv[])
     // Fill our data sets with pattern
     int i = 0;
     for(i = 0; i < MAX_LENGTH; i++) {
-        h_data[i]  = i;
-
-        h_A_output[i] = 0; 
+        h_data[i]  = 0xcc;
 
         h_B_output[i] = 0; 
-
     }
 
    // Get all platforms and then select Xilinx platform
@@ -286,7 +282,7 @@ int main(int argc, char* argv[])
     // Set the arguments to our compute kernel
     // int vector_length = MAX_LENGTH;
     err = 0;
-    cl_uint d_scalar00 = 100;
+    cl_uint d_scalar00 = 2049;
     err |= clSetKernelArg(kernel, 0, sizeof(cl_uint), &d_scalar00); // Not used in example RTL logic.
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_A); 
     //err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_B); 
@@ -315,6 +311,7 @@ int main(int argc, char* argv[])
     cl_event readevent;
     clFinish(commands);
 	printf( "3333\n"); fflush(stdout);
+	//sleep(5);
 
     err = 0;
     err |= clEnqueueReadBuffer( commands, d_A, CL_TRUE, 0, sizeof(int) * number_of_words, h_B_output, 0, NULL, &readevent );
@@ -330,6 +327,10 @@ int main(int argc, char* argv[])
 	printf( "5555\n"); fflush(stdout);
     // Check Results
 
+    for (uint i = 0; i < 20; i++) {
+		printf( "%x \t %x\n", h_data[i], h_B_output[i] );
+    }
+/*
     for (uint i = 0; i < number_of_words; i++) {
         if (2*(h_data[i]) != h_B_output[i]) {
             printf("ERROR in mkKernelTop - array index %d (host addr 0x%03x) - input=%d (0x%x), output=%d (0x%x)\n", i, i*4, h_data[i], h_data[i], h_B_output[i], h_B_output[i]);
@@ -337,7 +338,7 @@ int main(int argc, char* argv[])
         }
       //  printf("i=%d, input=%d, output=%d\n", i,  h_B_input[i], h_B_output[i]);
     }
-
+*/
 
     //--------------------------------------------------------------------------
     // Shutdown and cleanup

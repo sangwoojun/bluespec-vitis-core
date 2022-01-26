@@ -21,11 +21,30 @@ module mkKernelTop (KernelTopIfc);
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
 	Axi4MemoryMasterIfc#(64,512) axi4mem <- mkAxi4MemoryMaster;
 
-	Reg#(Bool) started <- False;
-	rule checkscalar;
+	Reg#(Bool) started <- mkReg(False);
+	rule checkscalar ( started == False );
 		if ( axi4control.ap_start ) started <= True;
-		if (started && axi4control.scalar00 > 0 ) begin
-			axi4control.ap_done(True);
+	endrule
+
+	Reg#(Bit#(32)) testCounter <- mkReg(0);
+	rule issueWork(started && testCounter == 0);
+		if ( axi4control.scalar00 > 0 ) begin
+			axi4mem.writeReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
+			testCounter <= axi4control.scalar00;
+		end
+	endrule
+
+	rule applyBurst (started == True && testCounter > 0);
+		testCounter <= testCounter - 1;
+		axi4mem.write({
+			testCounter,testCounter,testCounter,testCounter,
+			testCounter,testCounter,testCounter,testCounter,
+			testCounter,testCounter,testCounter,testCounter,
+			testCounter,testCounter,testCounter,testCounter
+		});
+
+		if ( testCounter == 1 ) begin
+			axi4control.ap_done();
 			started <= False;
 		end
 	endrule

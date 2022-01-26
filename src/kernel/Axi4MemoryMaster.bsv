@@ -1,11 +1,14 @@
 package Axi4MemoryMaster;
 
+import FIFO::*;
+import FIFOF::*;
+
 interface Axi4MemoryMasterPinsIfc#(numeric type addrSz, numeric type dataSz);
 	// write address to axi
 	(* always_ready, result="awvalid" *)
 	method Bool awvalid;
 	(* always_ready, always_enabled, prefix = "" *)
-	method Action address_write ((* port="awready" *)  Bit #(addrSz) awready);
+	method Action address_write ((* port="awready" *)  Bool awready);
 	(* always_ready, result="awaddr" *)
 	method Bit#(addrSz) awaddr;
 	(* always_ready, result="awlen" *)
@@ -79,40 +82,122 @@ interface Axi4MemoryMasterIfc#(numeric type addrSz, numeric type dataSz);
   */
 endinterface
 
-module mkAxi4MemoryMaster (Axi4MemoryMasterIfc#(addrSz,dataSz));
+module mkAxi4MemoryMaster (Axi4MemoryMasterIfc#(addrSz,dataSz))
+	provisos(
+		Add#(a__,8,addrSz),
+		Add#(b__,512,dataSz)
+	);
+	Reg#(Bit#(16)) writeWordInflightUp <- mkReg(0);
+	Reg#(Bit#(16)) writeWordInflightDn <- mkReg(0);
+	FIFOF#(Tuple2#(Bit#(addrSz), Bit#(addrSz))) writeBurstReqQ <- mkFIFOF;
+	FIFOF#(Bit#(dataSz)) writeWordQ <- mkFIFOF;
+
+
+	// max burst length = 64 for 512 bit words
+	Integer maxBurstWords = min(256, (4096/(valueOf(dataSz)/8)));
+	Integer maxBurstBytes = maxBurstWords*(valueOf(dataSz)/8);
+	Integer wordByteSzBits = valueOf(TLog#(dataSz))-3; // -3 for bytes
+
+	Reg#(Bit#(addrSz)) burstCurAddr <- mkReg(0);
+	Reg#(Bit#(addrSz)) burstBytesLeft <- mkReg(0);
+
+	FIFOF#(Tuple2#(Bit#(addrSz), Bit#(8))) writeBurstSubQ <- mkFIFOF;
+	rule genBurst;
+		if ( burstBytesLeft > 0 ) begin
+			burstCurAddr <= burstCurAddr + fromInteger(maxBurstBytes);
+			if ( burstBytesLeft > fromInteger(maxBurstBytes) ) begin
+				burstBytesLeft <= burstBytesLeft - fromInteger(maxBurstBytes);
+
+				writeBurstSubQ.enq(tuple2(burstCurAddr, fromInteger(maxBurstWords-1))); // because 0 is one beat
+			end else begin
+				writeBurstSubQ.enq(tuple2(burstCurAddr, truncate((burstBytesLeft>>wordByteSzBits)-1))); // because 0 is one beat
+				burstBytesLeft <= 0;
+			end
+		end else begin
+			writeBurstReqQ.deq;
+			let r = writeBurstReqQ.first;
+			let raddr = tpl_1(r);
+			let rsz = tpl_2(r);
+			if ( rsz > fromInteger(maxBurstBytes) ) begin
+				writeBurstSubQ.enq(tuple2(raddr,fromInteger(maxBurstWords-1))); // because 0 is one beat
+				burstBytesLeft <= rsz - fromInteger(maxBurstBytes); 
+				burstCurAddr <= raddr + fromInteger(maxBurstBytes); 
+			end else begin
+				writeBurstSubQ.enq(tuple2(raddr,truncate((rsz>>wordByteSzBits)-1))); // because 0 is one beat
+			end
+		end
+	endrule
+
+	RWire#(Tuple2#(Bit#(addrSz),Bit#(8))) addressWriteW <- mkRWire;
+	PulseWire addressWriteReadyW <- mkPulseWire;
+	FIFO#(Bit#(8)) writeBurstCounterQ <- mkFIFO;
+	rule applyAddressWrite;
+		if ( addressWriteReadyW ) begin
+			writeBurstSubQ.deq;
+			addressWriteW.wset(writeBurstSubQ.first);
+			writeBurstCounterQ.enq(tpl_2(writeBurstSubQ.first));
+		end
+	endrule
+
+
+	RWire#(Tuple2#(Bit#(dataSz),Bool)) dataWriteW <- mkRWire;
+	PulseWire dataWriteReadyW <- mkPulseWire;
+	Reg#(Bit#(8)) curBurstLeft <- mkReg(0);
+	rule applyDataWrite;
+		if ( dataWriteReadyW ) begin
+			Bit#(8) nextBurstLeft = ?;
+			if ( curBurstLeft == 0 ) begin
+				writeBurstCounterQ.deq;
+				nextBurstLeft = writeBurstCounterQ.first ;
+			end else begin
+				nextBurstLeft = curBurstLeft - 1;
+			end
+			curBurstLeft <= nextBurstLeft;
+			writeWordQ.deq;
+			dataWriteW.wset(tuple2(writeWordQ.first, nextBurstLeft == 0 ));
+		end
+	endrule
+
 
 	interface Axi4MemoryMasterPinsIfc pins;
 		method Bool awvalid;
-			return False;
+			return isValid(addressWriteW.wget);
 		endmethod
-		method Action address_write (Bit #(addrSz) awready);
+		method Action address_write (Bool awready);
+			if ( awready ) addressWriteReadyW.send;
 		endmethod
 		method Bit#(addrSz) awaddr;
-			return 0;
+			let a = fromMaybe(?,addressWriteW.wget);
+			return tpl_1(a);
 		endmethod
 		method Bit#(8) awlen;
-			return 0;
+			let a = fromMaybe(?,addressWriteW.wget);
+			return tpl_2(a);
 		endmethod
 	
 		method Bool wvalid;
-			return False;
+			return isValid(dataWriteW.wget);
 		endmethod
 		method Action data_write ( Bool wready);
+			if (wready) dataWriteReadyW.send;
 		endmethod
 		method Bit#(dataSz) wdata;
-			return 0;
+			let d = fromMaybe(?,dataWriteW.wget);
+			return tpl_1(d);
 		endmethod
 		method Bit#(TDiv#(dataSz,8)) wstrb;
-			return 0;
+			return pack(-1);
 		endmethod
 		method Bool wlast;
-			return False;
+			let d = fromMaybe(?,dataWriteW.wget);
+			return tpl_2(d);
 		endmethod
 	
 		method Action write_resp_valid (Bool bvalid);
+			if ( bvalid ) writeWordInflightDn <= writeWordInflightDn + 1;
 		endmethod
 		method Bool bready;
-			return False;
+			return True;
 		endmethod
 	
 		// write read addr to axi
@@ -149,8 +234,10 @@ module mkAxi4MemoryMaster (Axi4MemoryMasterIfc#(addrSz,dataSz));
 	endmethod
 
 	method Action writeReq(Bit#(addrSz) addr, Bit#(addrSz) size);
+		writeBurstReqQ.enq(tuple2(addr,size));
 	endmethod
 	method Action write(Bit#(dataSz) data);
+		writeWordQ.enq(data);
 	endmethod
 endmodule
 
