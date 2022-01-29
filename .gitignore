@@ -8,5 +8,6 @@ _x
 /tmp_*
 /packaged_*
 *.jou
+*.tgz
 /xclbin
 /emconfig.json
