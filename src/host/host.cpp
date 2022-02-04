@@ -311,7 +311,7 @@ int main(int argc, char* argv[])
     cl_event readevent;
     clFinish(commands);
 	printf( "3333\n"); fflush(stdout);
-	//sleep(5);
+	sleep(5);
 
     err = 0;
     err |= clEnqueueReadBuffer( commands, d_A, CL_TRUE, 0, sizeof(int) * number_of_words, h_B_output, 0, NULL, &readevent );

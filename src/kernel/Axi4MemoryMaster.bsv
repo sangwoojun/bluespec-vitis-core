@@ -204,11 +204,10 @@ module mkAxi4MemoryMaster (Axi4MemoryMasterIfc#(addrSz,dataSz))
 	RWire#(Bit#(dataSz)) readDataWordW <- mkRWire;
 	rule handleReadWord;
 		if ( readWordQ.notFull ) begin
-			if ( readDataValidW ) begin
-				readDataReadyW.send;
-			end
+			readDataReadyW.send;
 
-			if ( isValid(readDataWordW.wget) ) begin
+			if ( readDataValidW ) begin
+			//if ( isValid(readDataWordW.wget) ) begin
 				readWordQ.enq(fromMaybe(?,readDataWordW.wget));
 			end
 		end

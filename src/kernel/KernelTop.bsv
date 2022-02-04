@@ -7,6 +7,8 @@ interface KernelTopIfc;
 	(* always_ready *)
 	interface Axi4MemoryMasterPinsIfc#(64,512) m00_axi;
 	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m01_axi;
+	(* always_ready *)
 	interface Axi4LiteControllerXrtPinsIfc#(12,32) s_axi_control;
 	(* always_ready *)
 	method Bool interrupt;
@@ -20,8 +22,10 @@ module mkKernelTop (KernelTopIfc);
 
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
 	Axi4MemoryMasterIfc#(64,512) axi4mem <- mkAxi4MemoryMaster;
+	Axi4MemoryMasterIfc#(64,512) axi4file <- mkAxi4MemoryMaster;
 
 	Reg#(Bool) started <- mkReg(False);
+	Reg#(Bool) done <- mkReg(False);
 	rule checkscalar ( started == False );
 		if ( axi4control.ap_start ) started <= True;
 	endrule
@@ -34,7 +38,7 @@ module mkKernelTop (KernelTopIfc);
 
 	Reg#(Bit#(32)) readReqCycle <- mkReg(0);
 	Reg#(Bit#(32)) testCounter <- mkReg(0);
-	rule issueWork(started && testCounter == 0);
+	rule issueWork(started && testCounter == 0 && !done);
 		if ( axi4control.scalar00 > 0 ) begin
 			//axi4mem.writeReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
 			axi4mem.readReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
@@ -45,7 +49,7 @@ module mkKernelTop (KernelTopIfc);
 	endrule
 	Reg#(Bit#(32)) readRespFirstCycle <- mkReg(0);
 	Reg#(Bit#(32)) readRespLastCycle <- mkReg(0);
-	rule readBurst(started == True);
+	rule readBurst(testCounter != 0 && started == True);
 		let d <- axi4mem.read;
 		if (readRespFirstCycle == 0 ) readRespFirstCycle <= cycleCounter;
 		readRespLastCycle <= cycleCounter;
@@ -54,6 +58,7 @@ module mkKernelTop (KernelTopIfc);
 		if (testCounter == 1 ) begin
 			axi4control.ap_done();
 			started <= False;
+			done <= True;
 			
 			axi4mem.writeReq(axi4control.mem_addr,64); // 512 bits
 			axi4mem.write({
@@ -88,6 +93,7 @@ module mkKernelTop (KernelTopIfc);
 	*/
 
 	interface m00_axi = axi4mem.pins;
+	interface m01_axi = axi4file.pins;
 	interface s_axi_control = axi4control.pins;
 	interface interrupt = axi4control.interrupt;
 endmodule

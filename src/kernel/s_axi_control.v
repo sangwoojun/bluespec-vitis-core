@@ -34,7 +34,9 @@ module s_axi4_lite_controller
     input  wire                          ap_ready,
     input  wire                          ap_idle,
     output wire [31:0]                   scalar00,
-    output wire [63:0]                   mem
+    output wire [63:0]                   mem,
+    output wire [63:0]                   file
+
 );
 //------------------------Address Info-------------------
 // 0x00 : Control signals
@@ -78,12 +80,12 @@ localparam
     ADDR_ISR             = 6'h0c,
     ADDR_SCALAR00_DATA_0 = 6'h10,
     ADDR_SCALAR00_CTRL   = 6'h14,
-    ADDR_A_DATA_0        = 6'h18,
-    ADDR_A_DATA_1        = 6'h1c,
-    ADDR_A_CTRL          = 6'h20,
-    ADDR_B_DATA_0        = 6'h24,
-    ADDR_B_DATA_1        = 6'h28,
-    ADDR_B_CTRL          = 6'h2c,
+    ADDR_MEM_DATA_0        = 6'h18,
+    ADDR_MEM_DATA_1        = 6'h1c,
+    ADDR_MEM_CTRL          = 6'h20,
+    ADDR_FILE_DATA_0        = 6'h24,
+    ADDR_FILE_DATA_1        = 6'h28,
+    ADDR_FILE_CTRL          = 6'h2c,
     WRIDLE               = 2'd0,
     WRDATA               = 2'd1,
     WRRESP               = 2'd2,
@@ -117,8 +119,8 @@ localparam
     reg  [31:0]                   int_scalar00 = 'b0;
 
     reg  [63:0]                   int_mem = 'b0;
+    reg  [63:0]                   int_file = 'b0;
     //reg  [63:0]                   int_A = 'b0;
-    //reg  [63:0]                   int_B = 'b0;
 	wire ACLK_EN;
 	wire ARESET;
 
@@ -233,11 +235,17 @@ always @(posedge ACLK) begin
                 ADDR_SCALAR00_DATA_0: begin
                     rdata <= int_scalar00[31:0];
                 end
-                ADDR_A_DATA_0: begin
+                ADDR_MEM_DATA_0: begin
                     rdata <= int_mem[31:0];
                 end
-                ADDR_A_DATA_1: begin
+                ADDR_MEM_DATA_1: begin
                     rdata <= int_mem[63:32];
+                end
+                ADDR_FILE_DATA_0: begin
+                    rdata <= int_file[31:0];
+                end
+                ADDR_FILE_DATA_1: begin
+                    rdata <= int_file[63:32];
                 end
             endcase
         end
@@ -250,6 +258,7 @@ assign interrupt = int_gie & (|int_isr);
 assign ap_start  = int_ap_start;
 assign scalar00  = int_scalar00;
 assign mem       = int_mem;
+assign file      = int_file;
 // int_ap_start
 always @(posedge ACLK) begin
     if (ARESET)
@@ -356,26 +365,45 @@ always @(posedge ACLK) begin
     end
 end
 
-// int_A[31:0]
+// int_mem[31:0]
 always @(posedge ACLK) begin
     if (ARESET)
         int_mem[31:0] <= 0;
     else if (ACLK_EN) begin
-        if (w_hs && waddr == ADDR_A_DATA_0)
+        if (w_hs && waddr == ADDR_MEM_DATA_0)
             int_mem[31:0] <= (WDATA[31:0] & wmask) | (int_mem[31:0] & ~wmask);
     end
 end
 
-// int_A[63:32]
+// int_mem[63:32]
 always @(posedge ACLK) begin
     if (ARESET)
         int_mem[63:32] <= 0;
     else if (ACLK_EN) begin
-        if (w_hs && waddr == ADDR_A_DATA_1)
+        if (w_hs && waddr == ADDR_MEM_DATA_1)
             int_mem[63:32] <= (WDATA[31:0] & wmask) | (int_mem[63:32] & ~wmask);
     end
 end
 
+// int_file[31:0]
+always @(posedge ACLK) begin
+    if (ARESET)
+        int_file[31:0] <= 0;
+    else if (ACLK_EN) begin
+        if (w_hs && waddr == ADDR_FILE_DATA_0)
+            int_file[31:0] <= (WDATA[31:0] & wmask) | (int_file[31:0] & ~wmask);
+    end
+end
+
+// int_file[63:32]
+always @(posedge ACLK) begin
+    if (ARESET)
+        int_file[63:32] <= 0;
+    else if (ACLK_EN) begin
+        if (w_hs && waddr == ADDR_FILE_DATA_1)
+            int_file[63:32] <= (WDATA[31:0] & wmask) | (int_file[63:32] & ~wmask);
+    end
+end
 
 //------------------------Memory logic-------------------
 

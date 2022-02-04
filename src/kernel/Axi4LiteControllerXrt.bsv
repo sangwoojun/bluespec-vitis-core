@@ -51,6 +51,7 @@ interface Axi4LiteControllerXrtIfc#(numeric type addrSz, numeric type dataSz);
 
 	method Bit#(32) scalar00;
 	method Bit#(64) mem_addr;
+	method Bit#(64) file_addr;
 	
 	//(* result="ap_start" *) 
 	method Bool ap_start;
@@ -109,6 +110,7 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 
 	method scalar00 scalar00() reset_by(arst) clocked_by(aclk);
 	method mem mem_addr() reset_by(arst) clocked_by(aclk);
+	method file file_addr() reset_by(arst) clocked_by(aclk);
 	
 	method ap_start ap_start()  reset_by(arst) clocked_by(aclk);
 	method ap_done() enable(ap_done) clocked_by(aclk) reset_by(arst);
@@ -122,7 +124,7 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 		pins_read_address, pins_read_address_valid, pins_arready,
 		pins_rvalid, pins_read_data_ready, pins_rresp, pins_rdata,
 		interrupt,
-		scalar00,mem_addr,
+		scalar00,mem_addr,file_addr,
 		ap_start, ap_done, ap_ready, ap_idle
 		) CF (
 		pins_write_address, pins_write_address_valid, pins_awready,
@@ -131,7 +133,7 @@ module mkAxi4LiteControllerXrt#(Clock aclk, Reset arst) (Axi4LiteControllerXrtIf
 		pins_read_address, pins_read_address_valid, pins_arready,
 		pins_rvalid, pins_read_data_ready, pins_rresp, pins_rdata,
 		interrupt,
-		scalar00,mem_addr,
+		scalar00,mem_addr,file_addr,
 		ap_start, ap_done, ap_ready, ap_idle
 		);
 	
