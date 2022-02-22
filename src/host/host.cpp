@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     cl_mem d_A;                         // device memory used for a vector
 
     int h_B_output[MAX_LENGTH];                   // host memory for output vector
-    //cl_mem d_B;                         // device memory used for a vector
+    cl_mem d_B;                         // device memory used for a vector
 
     if (argc != 3) {
         printf("Usage: %s xclbin\n", argv[0]);
@@ -251,11 +251,11 @@ int main(int argc, char* argv[])
      mem_ext.flags = 1;
     d_A = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  sizeof(int) * number_of_words, &mem_ext, NULL);
 
-     //mem_ext.flags = 2;
-    //d_B = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  sizeof(int) * number_of_words, &mem_ext, NULL);
+    mem_ext.flags = 2;
+    d_B = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  sizeof(int) * number_of_words, &mem_ext, NULL);
 
 
-    if (!(d_A/*&&d_B*/)) {
+    if (!(d_A&&d_B)) {
         printf("Error: Failed to allocate device memory!\n");
         printf("Test failed\n");
         return EXIT_FAILURE;
@@ -270,14 +270,12 @@ int main(int argc, char* argv[])
     }
 
 
-/*
     err = clEnqueueWriteBuffer(commands, d_B, CL_TRUE, 0, sizeof(int) * number_of_words, h_data, 0, NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Error: Failed to write to source array h_data!\n");
         printf("Test failed\n");
         return EXIT_FAILURE;
     }
-*/
 
     // Set the arguments to our compute kernel
     // int vector_length = MAX_LENGTH;
@@ -285,7 +283,7 @@ int main(int argc, char* argv[])
     cl_uint d_scalar00 = 2049;
     err |= clSetKernelArg(kernel, 0, sizeof(cl_uint), &d_scalar00); // Not used in example RTL logic.
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_A); 
-    //err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_B); 
+    err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_B); 
 
     if (err != CL_SUCCESS) {
         printf("Error: Failed to set kernel arguments! %d\n", err);
@@ -345,7 +343,7 @@ int main(int argc, char* argv[])
     //-------------------------------------------------------------------------- 
     clReleaseMemObject(d_A);
 
-    //clReleaseMemObject(d_B);
+    clReleaseMemObject(d_B);
 
 
     clReleaseProgram(program);
