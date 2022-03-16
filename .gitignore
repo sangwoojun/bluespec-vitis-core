@@ -11,3 +11,4 @@ _x
 *.tgz
 /xclbin
 /emconfig.json
+/reports

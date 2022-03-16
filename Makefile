@@ -81,7 +81,6 @@ LDFLAGS += -lrt -lstdc++
 # Kernel compiler global settings
 CLFLAGS += -t $(TARGET) --platform $(DEVICE) --save-temps
 
-
 EXECUTABLE = host
 CMD_ARGS = $(XCLBIN)/kernel.$(TARGET).xclbin
 
@@ -104,6 +103,7 @@ $(XCLBIN)/kernel.$(TARGET).xclbin: $(BINARY_CONTAINER_kernel_OBJS)
 	echo $(CLFLAGS)
 	echo $(LDCLFLAGS)
 	$(VPP) $(CLFLAGS) $(LDCLFLAGS) -lo $(XCLBIN)/kernel.$(TARGET).xclbin $(XCLBIN)/kernel.$(TARGET).xo
+	vivado -mode batch -source ./scripts/report.tcl -nolog -nojournal
 
 # Building Host
 $(EXECUTABLE): $(HOST_SRCS) $(HOST_HDRS)
