@@ -53,8 +53,10 @@ ECHO:= @echo
 # XCPP COMPILER FLAGS
 ######################################################################
 opencl_CXXFLAGS += -g -I./ -I$(XILINX_XRT)/include -I$(XILINX_VIVADO)/include -Wall -O0 -g -std=c++14
+host_CXXFLAGS += -g -I./ -I$(XILINX_XRT)/include -I$(XILINX_VIVADO)/include -Wall -O0 -g -std=c++17
 # The below are linking flags for C++ Comnpiler
 opencl_LDFLAGS += -L$(XILINX_XRT)/lib -lOpenCL -lpthread
+xrt_LDFLAGS += -L$(XILINX_XRT)/lib -lxrt_coreutil -pthread
 
 
 
@@ -71,6 +73,7 @@ $(XCLBIN)/kernel.$(TARGET).xo: ./src/xml/kernel.xml ./scripts/package_kernel.tcl
 
 CXXFLAGS += $(opencl_CXXFLAGS)
 LDFLAGS += $(opencl_LDFLAGS)
+VPP_LINK_OPTS := --config connectivity.cfg
 
 HOST_SRCS += ./src/host/host.cpp
 
@@ -102,7 +105,7 @@ $(XCLBIN)/kernel.$(TARGET).xclbin: $(BINARY_CONTAINER_kernel_OBJS)
 	mkdir -p $(XCLBIN)
 	echo $(CLFLAGS)
 	echo $(LDCLFLAGS)
-	$(VPP) $(CLFLAGS) $(LDCLFLAGS) -lo $(XCLBIN)/kernel.$(TARGET).xclbin $(XCLBIN)/kernel.$(TARGET).xo
+	$(VPP) $(CLFLAGS) $(LDCLFLAGS) -lo $(XCLBIN)/kernel.$(TARGET).xclbin $(XCLBIN)/kernel.$(TARGET).xo $(VPP_LINK_OPTS)
 	vivado -mode batch -source ./scripts/report.tcl -nolog -nojournal
 
 # Building Host

@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 
     if (argc != 3) {
         printf("Usage: %s xclbin\n", argv[0]);
-        return EXIT_FAILURE;
+        //return EXIT_FAILURE;
     }
 
     // Fill our data sets with pattern
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
     }
    if (!device_found) {
         printf("Target device %s not found. Exit.\n", target_device_name);
-        return EXIT_FAILURE;
+        //return EXIT_FAILURE;
     }
 
     // Create a compute context
@@ -280,7 +280,7 @@ int main(int argc, char* argv[])
     // Set the arguments to our compute kernel
     // int vector_length = MAX_LENGTH;
     err = 0;
-    cl_uint d_scalar00 = 2049;
+    cl_uint d_scalar00 = (256/64)*1024*1024;
     err |= clSetKernelArg(kernel, 0, sizeof(cl_uint), &d_scalar00); // Not used in example RTL logic.
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_A); 
     err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_B); 

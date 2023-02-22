@@ -1,6 +1,7 @@
 import Axi4LiteControllerXrt::*;
 import Axi4MemoryMaster::*;
 
+import Vector::*;
 import Clocks :: *;
 
 interface KernelTopIfc;
@@ -8,6 +9,18 @@ interface KernelTopIfc;
 	interface Axi4MemoryMasterPinsIfc#(64,512) m00_axi;
 	(* always_ready *)
 	interface Axi4MemoryMasterPinsIfc#(64,512) m01_axi;
+	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m02_axi;
+	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m03_axi;
+	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m04_axi;
+	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m05_axi;
+	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m06_axi;
+	(* always_ready *)
+	interface Axi4MemoryMasterPinsIfc#(64,512) m07_axi;
 	(* always_ready *)
 	interface Axi4LiteControllerXrtPinsIfc#(12,32) s_axi_control;
 	(* always_ready *)
@@ -21,8 +34,8 @@ module mkKernelTop (KernelTopIfc);
 	Reset defaultReset <- exposeCurrentReset;
 
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
-	Axi4MemoryMasterIfc#(64,512) axi4mem <- mkAxi4MemoryMaster;
-	Axi4MemoryMasterIfc#(64,512) axi4file <- mkAxi4MemoryMaster;
+	Vector#(8, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster);
+	//Axi4MemoryMasterIfc#(64,512) axi4file <- mkAxi4MemoryMaster;
 
 	Reg#(Bool) started <- mkReg(False);
 	Reg#(Bool) done <- mkReg(False);
@@ -41,7 +54,10 @@ module mkKernelTop (KernelTopIfc);
 	rule issueWork(started && testCounter == 0 && !done);
 		if ( axi4control.scalar00 > 0 ) begin
 			//axi4mem.writeReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
-			axi4mem.readReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
+			axi4mem[0].readReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
+			for ( Integer i = 1; i< 8; i=i+1) begin
+				axi4mem[i].writeReq(axi4control.file_addr,zeroExtend(axi4control.scalar00)<<6);
+			end
 
 			testCounter <= axi4control.scalar00;
 			readReqCycle <= cycleCounter;
@@ -49,8 +65,14 @@ module mkKernelTop (KernelTopIfc);
 	endrule
 	Reg#(Bit#(32)) readRespFirstCycle <- mkReg(0);
 	Reg#(Bit#(32)) readRespLastCycle <- mkReg(0);
+
+
 	rule readBurst(testCounter != 0 && started == True);
-		let d <- axi4mem.read;
+		let d <- axi4mem[0].read;
+		for ( Integer i = 1; i< 8; i=i+1) begin
+			axi4mem[i].write(d);
+		end
+
 		if (readRespFirstCycle == 0 ) readRespFirstCycle <= cycleCounter;
 		readRespLastCycle <= cycleCounter;
 		testCounter <= testCounter - 1;
@@ -60,8 +82,8 @@ module mkKernelTop (KernelTopIfc);
 			started <= False;
 			done <= True;
 			
-			axi4mem.writeReq(axi4control.mem_addr,64); // 512 bits
-			axi4mem.write({
+			axi4mem[0].writeReq(axi4control.mem_addr,64); // 512 bits
+			axi4mem[0].write({
 				readReqCycle,32'h11111111,readRespFirstCycle,32'h22222222,
 				readRespLastCycle,32'h33333333,32'hdeadbeef,testCounter,
 				testCounter,testCounter,testCounter,testCounter,
@@ -70,30 +92,14 @@ module mkKernelTop (KernelTopIfc);
 		end
 	endrule
 
-/*
-	Reg#(Bit#(32)) writeCounter <- mkReg(0);
-	rule writeReq(started == True && testCounter == 0 && writeCounter == 0 && readRespFirstCycle != 0 );
-			axi4mem.writeReq(axi4control.mem_addr,0); // 512 bits
-	endrule
-
-	rule applyBurst (started == True && testCounter > 0);
-		testCounter <= testCounter - 1;
-		axi4mem.write({
-			testCounter,testCounter,testCounter,testCounter,
-			testCounter,testCounter,testCounter,testCounter,
-			testCounter,testCounter,testCounter,testCounter,
-			testCounter,testCounter,testCounter,testCounter
-		});
-
-		if ( testCounter == 1 ) begin
-			axi4control.ap_done();
-			started <= False;
-		end
-	endrule
-	*/
-
-	interface m00_axi = axi4mem.pins;
-	interface m01_axi = axi4file.pins;
+	interface m00_axi = axi4mem[0].pins;
+	interface m01_axi = axi4mem[1].pins;
+	interface m02_axi = axi4mem[2].pins;
+	interface m03_axi = axi4mem[3].pins;
+	interface m04_axi = axi4mem[4].pins;
+	interface m05_axi = axi4mem[5].pins;
+	interface m06_axi = axi4mem[6].pins;
+	interface m07_axi = axi4mem[7].pins;
 	interface s_axi_control = axi4control.pins;
 	interface interrupt = axi4control.interrupt;
 endmodule
