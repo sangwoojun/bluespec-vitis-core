@@ -75,7 +75,7 @@ CXXFLAGS += $(opencl_CXXFLAGS)
 LDFLAGS += $(opencl_LDFLAGS)
 VPP_LINK_OPTS := --config connectivity.cfg
 
-HOST_SRCS += ./src/host/host.cpp
+HOST_SRCS += ./src/host/host.cpp ./src/host/opencl_helpers.cpp
 
 # Host compiler global settings
 CXXFLAGS += -fmessage-length=0

@@ -10,18 +10,6 @@ interface KernelTopIfc;
 	(* always_ready *)
 	interface Axi4MemoryMasterPinsIfc#(64,512) m01_axi;
 	(* always_ready *)
-	interface Axi4MemoryMasterPinsIfc#(64,512) m02_axi;
-	(* always_ready *)
-	interface Axi4MemoryMasterPinsIfc#(64,512) m03_axi;
-	(* always_ready *)
-	interface Axi4MemoryMasterPinsIfc#(64,512) m04_axi;
-	(* always_ready *)
-	interface Axi4MemoryMasterPinsIfc#(64,512) m05_axi;
-	(* always_ready *)
-	interface Axi4MemoryMasterPinsIfc#(64,512) m06_axi;
-	(* always_ready *)
-	interface Axi4MemoryMasterPinsIfc#(64,512) m07_axi;
-	(* always_ready *)
 	interface Axi4LiteControllerXrtPinsIfc#(12,32) s_axi_control;
 	(* always_ready *)
 	method Bool interrupt;
@@ -34,7 +22,7 @@ module mkKernelTop (KernelTopIfc);
 	Reset defaultReset <- exposeCurrentReset;
 
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
-	Vector#(8, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster);
+	Vector#(2, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster);
 	//Axi4MemoryMasterIfc#(64,512) axi4file <- mkAxi4MemoryMaster;
 
 	Reg#(Bool) started <- mkReg(False);
@@ -55,7 +43,7 @@ module mkKernelTop (KernelTopIfc);
 		if ( axi4control.scalar00 > 0 ) begin
 			//axi4mem.writeReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
 			axi4mem[0].readReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
-			for ( Integer i = 1; i< 8; i=i+1) begin
+			for ( Integer i = 1; i< 2; i=i+1) begin
 				axi4mem[i].writeReq(axi4control.file_addr,zeroExtend(axi4control.scalar00)<<6);
 			end
 
@@ -69,7 +57,7 @@ module mkKernelTop (KernelTopIfc);
 
 	rule readBurst(testCounter != 0 && started == True);
 		let d <- axi4mem[0].read;
-		for ( Integer i = 1; i< 8; i=i+1) begin
+		for ( Integer i = 1; i< 2; i=i+1) begin
 			axi4mem[i].write(d);
 		end
 
@@ -94,12 +82,6 @@ module mkKernelTop (KernelTopIfc);
 
 	interface m00_axi = axi4mem[0].pins;
 	interface m01_axi = axi4mem[1].pins;
-	interface m02_axi = axi4mem[2].pins;
-	interface m03_axi = axi4mem[3].pins;
-	interface m04_axi = axi4mem[4].pins;
-	interface m05_axi = axi4mem[5].pins;
-	interface m06_axi = axi4mem[6].pins;
-	interface m07_axi = axi4mem[7].pins;
 	interface s_axi_control = axi4control.pins;
 	interface interrupt = axi4control.interrupt;
 endmodule
