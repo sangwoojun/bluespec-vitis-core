@@ -12,6 +12,7 @@ Associated Filename: main.c
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
@@ -49,9 +50,12 @@ int main(int argc, char* argv[])
 	cl_kernel kernel;			// Compute kernel
 	init_setup(0, context, commands, program, kernel);
 	
-	int h_data[MAX_LENGTH],			// Host memory for input vector
-	    h_B_output[MAX_LENGTH];		// Host memory for output vector
+	int* h_data;				// Host memory for input vector
+	int h_B_output[MAX_LENGTH];		// Host memory for output vector
 	cl_mem d_A, d_B;			// Device memory used for a vector
+
+	const uint data_bytes = (16*1024);		// 16KB of data
+	h_data = (int*)malloc(sizeof(int)*MAX_LENGTH);	// 8KB
 
 	// For allocating buffer to specific global memory bank
 	// User has to use cl_mem_ext_ptr_t and provide the banks
@@ -65,11 +69,9 @@ int main(int argc, char* argv[])
 	mem_ext_B.param = 0;
 	mem_ext_B.flags = 2 | XCL_MEM_TOPOLOGY;
     
-	const uint number_of_words = 4096; // 16KB of data
-
 	// Creating buffers
-	d_A = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  sizeof(int) * number_of_words, &mem_ext_A, NULL);
-	d_B = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  sizeof(int) * number_of_words, &mem_ext_B, NULL);
+	d_A = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  data_bytes, &mem_ext_A, NULL);
+	d_B = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  data_bytes, &mem_ext_B, NULL);
 	if (!(d_A&&d_B)) {
 		printf("Error: Failed to allocate device memory!\n");
 		printf("Test failed\n");
@@ -77,13 +79,13 @@ int main(int argc, char* argv[])
 	}
 
 	//
-	err = clEnqueueWriteBuffer(commands, d_A, CL_TRUE, 0, sizeof(int) * number_of_words, h_data, 0, NULL, NULL);
+	err = clEnqueueWriteBuffer(commands, d_A, CL_TRUE, 0, data_bytes, h_data, 0, NULL, NULL);
 	if (err != CL_SUCCESS) {
 		printf("Error: Failed to write to source array h_data!\n");
 		printf("Test failed\n");
 		return EXIT_FAILURE;
 	}
-	err = clEnqueueWriteBuffer(commands, d_B, CL_TRUE, 0, sizeof(int) * number_of_words, h_data, 0, NULL, NULL);
+	err = clEnqueueWriteBuffer(commands, d_B, CL_TRUE, 0, data_bytes, h_data, 0, NULL, NULL);
 	if (err != CL_SUCCESS) {
 		printf("Error: Failed to write to source array h_data!\n");
 		printf("Test failed\n");
@@ -121,7 +123,7 @@ int main(int argc, char* argv[])
 
 	// Read back the restuls from the device to verify the output
 	err = 0;
-	err |= clEnqueueReadBuffer( commands, d_A, CL_TRUE, 0, sizeof(int) * number_of_words, h_B_output, 0, NULL, &readevent );
+	err |= clEnqueueReadBuffer( commands, d_A, CL_TRUE, 0, data_bytes, h_B_output, 0, NULL, &readevent );
 	printf( "[Result] Memory Reading Start\n"); fflush(stdout);
 	if (err != CL_SUCCESS) {
 		printf("Error: Failed to read output array! %d\n", err);
