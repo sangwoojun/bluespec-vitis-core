@@ -23,7 +23,6 @@ module mkKernelTop (KernelTopIfc);
 
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
 	Vector#(2, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster);
-	//Axi4MemoryMasterIfc#(64,512) axi4file <- mkAxi4MemoryMaster;
 
 	Reg#(Bool) started <- mkReg(False);
 	Reg#(Bool) done <- mkReg(False);
@@ -36,36 +35,28 @@ module mkKernelTop (KernelTopIfc);
 		cycleCounter <= cycleCounter + 1;
 	endrule
 
-
 	Reg#(Bit#(32)) readReqCycle <- mkReg(0);
 	Reg#(Bit#(32)) testCounter <- mkReg(0);
-	rule issueWork(started && testCounter == 0 && !done);
+	rule issueWork( started && testCounter == 0 && !done );
 		if ( axi4control.scalar00 > 0 ) begin
-			//axi4mem.writeReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
 			axi4mem[0].readReq(axi4control.mem_addr,zeroExtend(axi4control.scalar00)<<6); // 512 bits
-			for ( Integer i = 1; i< 2; i=i+1) begin
-				axi4mem[i].writeReq(axi4control.file_addr,zeroExtend(axi4control.scalar00)<<6);
-			end
-
+			axi4mem[1].writeReq(axi4control.file_addr,zeroExtend(axi4control.scalar00)<<6);
 			testCounter <= axi4control.scalar00;
 			readReqCycle <= cycleCounter;
 		end
 	endrule
+
 	Reg#(Bit#(32)) readRespFirstCycle <- mkReg(0);
 	Reg#(Bit#(32)) readRespLastCycle <- mkReg(0);
-
-
-	rule readBurst(testCounter != 0 && started == True);
+	rule readBurst( testCounter != 0 && started == True );
 		let d <- axi4mem[0].read;
-		for ( Integer i = 1; i< 2; i=i+1) begin
-			axi4mem[i].write(d);
-		end
+		axi4mem[1].write(d);
 
 		if (readRespFirstCycle == 0 ) readRespFirstCycle <= cycleCounter;
 		readRespLastCycle <= cycleCounter;
 		testCounter <= testCounter - 1;
 
-		if (testCounter == 1 ) begin
+		if ( testCounter == 1 ) begin
 			axi4control.ap_done();
 			started <= False;
 			done <= True;
