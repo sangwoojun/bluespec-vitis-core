@@ -54,8 +54,8 @@ int main(int argc, char* argv[])
 	int h_B_output[MAX_LENGTH];		// Host memory for output vector
 	cl_mem d_A, d_B;			// Device memory used for a vector
 
-	const uint data_bytes = (16*1024);		// 16KB of data
-	h_data = (int*)malloc(sizeof(int)*MAX_LENGTH);	// 8KB
+	const uint data_bytes = (256*1024*1024);// 256MB per one bank of HBM
+	h_data = (int*)malloc(data_bytes);
 
 	// For allocating buffer to specific global memory bank
 	// User has to use cl_mem_ext_ptr_t and provide the banks
@@ -63,11 +63,11 @@ int main(int argc, char* argv[])
 	
 	mem_ext_A.obj = NULL;
 	mem_ext_A.param = 0;
-	mem_ext_A.flags = 1 | XCL_MEM_TOPOLOGY;
+	mem_ext_A.flags = 0 | XCL_MEM_TOPOLOGY; // HBM[0]
 
 	mem_ext_B.obj = NULL;
 	mem_ext_B.param = 0;
-	mem_ext_B.flags = 2 | XCL_MEM_TOPOLOGY;
+	mem_ext_B.flags = 2 | XCL_MEM_TOPOLOGY; // HBM[2]
     
 	// Creating buffers
 	d_A = clCreateBuffer(context,  CL_MEM_READ_WRITE | CL_MEM_EXT_PTR_XILINX,  data_bytes, &mem_ext_A, NULL);
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 
 	// Read back the restuls from the device to verify the output
 	err = 0;
-	err |= clEnqueueReadBuffer( commands, d_A, CL_TRUE, 0, data_bytes, h_B_output, 0, NULL, &readevent );
+	err |= clEnqueueReadBuffer(commands, d_A, CL_TRUE, 0, MAX_LENGTH, h_B_output, 0, NULL, &readevent);
 	printf( "[Result] Memory Reading Start\n"); fflush(stdout);
 	if (err != CL_SUCCESS) {
 		printf("Error: Failed to read output array! %d\n", err);
