@@ -106,19 +106,19 @@ set reg      [::ipx::add_register -quiet "scalar00" $addr_block]
   set_property address_offset 0x010 $reg
   set_property size           [expr {4*8}]   $reg
   set regparam [::ipx::add_register_parameter -quiet {ASSOCIATED_BUSIF} $reg] 
-  set_property value m_axi_gmem $regparam 
+  set_property value s_axi_control $regparam 
 
 set reg      [::ipx::add_register -quiet "mem" $addr_block]
   set_property address_offset 0x018 $reg
   set_property size           [expr {8*8}]   $reg
   set regparam [::ipx::add_register_parameter -quiet {ASSOCIATED_BUSIF} $reg] 
-  set_property value m_axi_gmem $regparam 
+  set_property value m00_axi $regparam 
 
 set reg      [::ipx::add_register -quiet "file" $addr_block]
   set_property address_offset 0x024 $reg
   set_property size           [expr {8*8}]   $reg
   set regparam [::ipx::add_register_parameter -quiet {ASSOCIATED_BUSIF} $reg] 
-  set_property value m_axi_gmem $regparam 
+  set_property value m01_axi $regparam 
 
 set_property slave_memory_map_ref "s_axi_control" [::ipx::get_bus_interfaces -of $core "s_axi_control"]
 
