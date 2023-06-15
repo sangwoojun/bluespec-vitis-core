@@ -29,6 +29,7 @@ module s_axi4_lite_controller
     output wire                          RVALID,
     input  wire                          RREADY,
     output wire                          interrupt,
+    // user signals
     output wire                          ap_start,
     input  wire                          ap_done,
     input  wire                          ap_ready,
@@ -57,17 +58,17 @@ module s_axi4_lite_controller
 //        bit 0  - Channel 0 (ap_done)
 //        bit 1  - Channel 1 (ap_ready)
 //        others - reserved
-// 0x10 : Data signal of scalar00
+// 0x10 : Data signal of 'scalar00'
 //        bit 31~0 - scalar00[31:0] (Read/Write)
 // 0x14 : reserved
-// 0x18 : Data signal of A
+// 0x18 : Data signal of 'mem'
 //        bit 31~0 - A[31:0] (Read/Write)
-// 0x1c : Data signal of A
+// 0x1c : Data signal of 'mem'
 //        bit 31~0 - A[63:32] (Read/Write)
 // 0x20 : reserved
-// 0x24 : Data signal of B
+// 0x24 : Data signal of 'file'
 //        bit 31~0 - B[31:0] (Read/Write)
-// 0x28 : Data signal of B
+// 0x28 : Data signal of 'file'
 //        bit 31~0 - B[63:32] (Read/Write)
 // 0x2c : reserved
 // (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
@@ -120,12 +121,10 @@ localparam
 
     reg  [63:0]                   int_mem = 'b0;
     reg  [63:0]                   int_file = 'b0;
-    //reg  [63:0]                   int_A = 'b0;
-	wire ACLK_EN;
-	wire ARESET;
-
-	assign ACLK_EN = 1;
-	assign ARESET = ~ARESET_N;
+    wire ACLK_EN;
+    wire ARESET;
+    assign ACLK_EN = 1;
+    assign ARESET = ~ARESET_N;
 //------------------------Instantiation------------------
 
 //------------------------AXI write fsm------------------
@@ -254,11 +253,13 @@ end
 
 
 //------------------------Register logic-----------------
-assign interrupt = int_gie & (|int_isr);
-assign ap_start  = int_ap_start;
-assign scalar00  = int_scalar00;
-assign mem       = int_mem;
-assign file      = int_file;
+assign interrupt    = int_gie & (|int_isr);
+assign ap_start     = int_ap_start;
+//assign int_ap_idle  = ap_idle;
+//assign int_ap_ready = ap_ready;
+assign scalar00     = int_scalar00;
+assign mem          = int_mem;
+assign file         = int_file;
 // int_ap_start
 always @(posedge ACLK) begin
     if (ARESET)
