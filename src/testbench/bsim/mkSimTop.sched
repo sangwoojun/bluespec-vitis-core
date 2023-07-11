@@ -1,0 +1,335 @@
+=== Generated schedule for mkSimTop ===
+
+Rule schedule
+-------------
+Rule: kernelMain_incCycle
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_dataStreamQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_dataStreamQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_dataStreamQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_dataStreamInfoQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_dataStreamInfoQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_dataStreamInfoQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_queryStreamQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_queryStreamQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_queryStreamQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_queryStreamInfoQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_queryStreamInfoQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_queryStreamInfoQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedStreamInfoQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedStreamInfoQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedStreamInfoQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedStreamQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedStreamQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedStreamQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_separateDataHeader
+Predicate: kernelMain_intersection_dataStreamInQ.i_notEmpty &&
+	   ((kernelMain_intersection_curDataPageOff == 16'd0)
+	    ? ! ((kernelMain_intersection_dataStreamInfoQ_rRdPtr.read +
+		  9'd128) ==
+		 kernelMain_intersection_dataStreamInfoQ_rWrPtr.read)
+	    : (! ((kernelMain_intersection_dataStreamQ_rRdPtr.read +
+		   12'd1024) ==
+		  kernelMain_intersection_dataStreamQ_rWrPtr.read))) &&
+	   (! kernelMain_intersection_dataBlockLoaded)
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_separateQueryHeader
+Predicate: kernelMain_intersection_queryStreamInQ.i_notEmpty &&
+	   ((kernelMain_intersection_curQueryPageOff == 16'd0)
+	    ? ! ((kernelMain_intersection_queryStreamInfoQ_rRdPtr.read +
+		  9'd128) ==
+		 kernelMain_intersection_queryStreamInfoQ_rWrPtr.read)
+	    : (! ((kernelMain_intersection_queryStreamQ_rRdPtr.read +
+		   12'd1024) ==
+		  kernelMain_intersection_queryStreamQ_rWrPtr.read)))
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_startIntersect
+Predicate: (! ((kernelMain_intersection_dataStreamInfoQ_rRdPtr.read +
+		9'd128) ==
+	       kernelMain_intersection_dataStreamInfoQ_rWrPtr.read)) &&
+	   (! (kernelMain_intersection_queryStreamInfoQ_rRdPtr.read ==
+	       kernelMain_intersection_queryStreamInfoQ_rWrPtr.read)) &&
+	   (! (kernelMain_intersection_dataStreamInfoQ_rRdPtr.read ==
+	       kernelMain_intersection_dataStreamInfoQ_rWrPtr.read)) &&
+	   kernelMain_intersection_dataStreamInfoQ_wDataOut.whas &&
+	   kernelMain_intersection_queryStreamInfoQ_wDataOut.whas &&
+	   kernelMain_intersection_dataBlockLoaded &&
+	   (kernelMain_intersection_queryWordsLeft == 16'd0) &&
+	   (kernelMain_intersection_dataWordsLeft == 16'd0)
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_doIntersect
+Predicate: (! (kernelMain_intersection_dataStreamQ_rRdPtr.read ==
+	       kernelMain_intersection_dataStreamQ_rWrPtr.read)) &&
+	   (! (kernelMain_intersection_queryStreamQ_rRdPtr.read ==
+	       kernelMain_intersection_queryStreamQ_rWrPtr.read)) &&
+	   kernelMain_intersection_dataStreamQ_wDataOut.whas &&
+	   kernelMain_intersection_queryStreamQ_wDataOut.whas &&
+	   ((! ((kernelMain_intersection_dataStreamQ_wDataOut.whas
+		 ? kernelMain_intersection_dataStreamQ_wDataOut.wget
+		 : (_ :: Bit 256))[31:0] <=
+		(kernelMain_intersection_queryStreamQ_wDataOut.whas
+		 ? kernelMain_intersection_queryStreamQ_wDataOut.wget
+		 : (_ :: Bit 256))[255:224])) ||
+	    (! ((kernelMain_intersection_dataStreamQ_rRdPtr.read +
+		 12'd1024) ==
+		kernelMain_intersection_dataStreamQ_rWrPtr.read))) &&
+	   (((! (kernelMain_intersection_dataWordsLeft == 16'd1)) &&
+	     (! ((((kernelMain_intersection_dataStreamQ_wDataOut.whas
+		    ? kernelMain_intersection_dataStreamQ_wDataOut.wget
+		    : (_ :: Bit 256))[31:0] <=
+		   (kernelMain_intersection_queryStreamQ_wDataOut.whas
+		    ? kernelMain_intersection_queryStreamQ_wDataOut.wget
+		    : (_ :: Bit 256))[255:224])
+		  ? ((kernelMain_intersection_dataStreamQ_wDataOut.whas
+		      ? kernelMain_intersection_dataStreamQ_wDataOut.wget
+		      : (_ :: Bit 256))[255:224] <
+		     (kernelMain_intersection_queryStreamQ_wDataOut.whas
+		      ? kernelMain_intersection_queryStreamQ_wDataOut.wget
+		      : (_ :: Bit 256))[255:224])
+		    ? kernelMain_intersection_queryWordsLeft
+		    : (kernelMain_intersection_queryWordsLeft - 16'd1)
+		  : (kernelMain_intersection_queryWordsLeft - 16'd1)) ==
+		 16'd0))) ||
+	    kernelMain_intersection_tupleUnrollReqQ.i_notFull) &&
+	   (! (kernelMain_intersection_queryWordsLeft == 16'd0)) &&
+	   (! (kernelMain_intersection_dataWordsLeft == 16'd0)) &&
+	   (kernelMain_intersection_vectorUnrollLeft == 8'd0)
+Blocking rules: kernelMain_intersection_separateDataHeader
+ 
+Rule: kernelMain_intersection_flushIntersectD
+Predicate: (! (kernelMain_intersection_dataStreamQ_rRdPtr.read ==
+	       kernelMain_intersection_dataStreamQ_rWrPtr.read)) &&
+	   (kernelMain_intersection_queryWordsLeft == 16'd0) &&
+	   (! (kernelMain_intersection_dataWordsLeft == 16'd0))
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_flushIntersectQ
+Predicate: (! (kernelMain_intersection_queryStreamQ_rRdPtr.read ==
+	       kernelMain_intersection_queryStreamQ_rWrPtr.read)) &&
+	   (! (kernelMain_intersection_queryWordsLeft == 16'd0)) &&
+	   (kernelMain_intersection_dataWordsLeft == 16'd0)
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_unrollIntersect
+Predicate: (kernelMain_intersection_tupleUnrollReqQ.notEmpty
+	    ? kernelMain_intersection_tupleUnrollReqQ.i_notEmpty &&
+	      ((kernelMain_intersection_tuplesUnrolledCount <
+		kernelMain_intersection_tupleUnrollReqQ.first) ||
+	       (kernelMain_intersection_unrolledqQ.i_notFull &&
+		kernelMain_intersection_unrolleddQ.i_notFull))
+	    : (kernelMain_intersection_unrolledqQ.i_notFull &&
+	       kernelMain_intersection_unrolleddQ.i_notFull)) &&
+	   (! (kernelMain_intersection_vectorUnrollLeft == 8'd0))
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_wordIntersect
+Predicate: kernelMain_intersection_unrolleddQ.i_notEmpty &&
+	   (kernelMain_intersection_unrolleddQ.first[32] ||
+	    kernelMain_intersection_unrolledqQ.i_notEmpty) &&
+	   (((! kernelMain_intersection_unrolleddQ.first[32]) &&
+	     (! kernelMain_intersection_unrolledqQ.first[32]))
+	    ? kernelMain_intersection_unrolledqQ.i_notEmpty &&
+	      ((! (kernelMain_intersection_unrolleddQ.first[31:0] ==
+		   kernelMain_intersection_unrolledqQ.first[31:0])) ||
+	       kernelMain_intersection_intersectedQ.i_notFull)
+	    : ((False || (! kernelMain_intersection_unrolleddQ.first[32]) ||
+		kernelMain_intersection_unrolledqQ.i_notEmpty) &&
+	       ((kernelMain_intersection_unrolleddQ.first[32] &&
+		 (! kernelMain_intersection_unrolledqQ.first[32])) ||
+		(kernelMain_intersection_unrolledqQ.i_notEmpty &&
+		 ((kernelMain_intersection_unrolledqQ.first[32] &&
+		   (! kernelMain_intersection_unrolleddQ.first[32])) ||
+		  kernelMain_intersection_intersectedQ.i_notFull))) &&
+	       ((! kernelMain_intersection_unrolleddQ.first[32]) ||
+		kernelMain_intersection_unrolledqQ.first[32] ||
+		kernelMain_intersection_unrolledqQ.i_notEmpty)))
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedTupleStageQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedTupleStageQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_intersectedTupleStageQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_deserializeIntersected
+Predicate: kernelMain_intersection_intersectedQ.i_notEmpty &&
+	   (kernelMain_intersection_intersectedQ.first[32]
+	    ? kernelMain_intersection_intersectedListInfoQ.i_notFull &&
+	      ((kernelMain_intersection_intersectedWordCnt == 8'd0) ||
+	       (! ((kernelMain_intersection_intersectedTupleStageQ_rRdPtr.read +
+		    12'd1024) ==
+		   kernelMain_intersection_intersectedTupleStageQ_rWrPtr.read)))
+	    : ((! (kernelMain_intersection_intersectedWordCnt == 8'd7)) ||
+	       (! ((kernelMain_intersection_intersectedTupleStageQ_rRdPtr.read +
+		    12'd1024) ==
+		   kernelMain_intersection_intersectedTupleStageQ_rWrPtr.read))))
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_outputQ_portA
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_outputQ_portB
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_outputQ_portB_read_data
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: kernelMain_intersection_mergeInfoStreams
+Predicate: (! ((kernelMain_intersection_outputQ_rRdPtr.read + 12'd1024) ==
+	       kernelMain_intersection_outputQ_rWrPtr.read)) &&
+	   ((kernelMain_intersection_outTuplesLeft == 16'd0)
+	    ? kernelMain_intersection_intersectedListInfoQ.i_notEmpty
+	    : ((! (kernelMain_intersection_intersectedTupleStageQ_rRdPtr.read ==
+		   kernelMain_intersection_intersectedTupleStageQ_rWrPtr.read)) &&
+	       kernelMain_intersection_intersectedTupleStageQ_wDataOut.whas))
+Blocking rules: (none)
+ 
+Rule: relayReadReq00
+Predicate: kernelMain_readReqQs_0.i_notEmpty && (memReadBytesLeft_0 == 32'd0)
+Blocking rules: (none)
+ 
+Rule: relayWriteReq
+Predicate: kernelMain_writeReqQs_0.i_notEmpty
+Blocking rules: (none)
+ 
+Rule: relayWriteWord
+Predicate: kernelMain_writeWordQs_0.i_notEmpty &&
+	   (! (memWriteBytesLeft_0 == 32'd0))
+Blocking rules: (none)
+ 
+Rule: relayReadWord
+Predicate: kernelMain_readWordQs_0.i_notFull &&
+	   (! (memReadBytesLeft_0 == 32'd0))
+Blocking rules: (none)
+ 
+Rule: relayReadReq00_1
+Predicate: kernelMain_readReqQs_1.i_notEmpty && (memReadBytesLeft_1 == 32'd0)
+Blocking rules: (none)
+ 
+Rule: relayWriteReq_1
+Predicate: kernelMain_writeReqQs_1.i_notEmpty
+Blocking rules: (none)
+ 
+Rule: relayWriteWord_1
+Predicate: kernelMain_writeWordQs_1.i_notEmpty &&
+	   (! (memWriteBytesLeft_1 == 32'd0))
+Blocking rules: (none)
+ 
+Rule: relayReadWord_1
+Predicate: kernelMain_readWordQs_1.i_notFull &&
+	   (! (memReadBytesLeft_1 == 32'd0))
+Blocking rules: (none)
+ 
+Logical execution order: relayReadReq00,
+			 relayWriteWord,
+			 relayWriteReq,
+			 relayReadWord,
+			 relayReadReq00_1,
+			 relayWriteWord_1,
+			 relayWriteReq_1,
+			 relayReadWord_1,
+			 kernelMain_incCycle,
+			 kernelMain_intersection_separateDataHeader,
+			 kernelMain_intersection_separateQueryHeader,
+			 kernelMain_intersection_flushIntersectD,
+			 kernelMain_intersection_flushIntersectQ,
+			 kernelMain_intersection_unrollIntersect,
+			 kernelMain_intersection_wordIntersect,
+			 kernelMain_intersection_deserializeIntersected,
+			 kernelMain_intersection_dataStreamQ_portB_read_data,
+			 kernelMain_intersection_dataStreamInfoQ_portB_read_data,
+			 kernelMain_intersection_queryStreamQ_portB_read_data,
+			 kernelMain_intersection_doIntersect,
+			 kernelMain_intersection_dataStreamQ_portA,
+			 kernelMain_intersection_dataStreamQ_portB,
+			 kernelMain_intersection_queryStreamQ_portA,
+			 kernelMain_intersection_queryStreamQ_portB,
+			 kernelMain_intersection_queryStreamInfoQ_portB_read_data,
+			 kernelMain_intersection_startIntersect,
+			 kernelMain_intersection_dataStreamInfoQ_portA,
+			 kernelMain_intersection_dataStreamInfoQ_portB,
+			 kernelMain_intersection_queryStreamInfoQ_portA,
+			 kernelMain_intersection_queryStreamInfoQ_portB,
+			 kernelMain_intersection_intersectedStreamInfoQ_portB,
+			 kernelMain_intersection_intersectedStreamInfoQ_portB_read_data,
+			 kernelMain_intersection_intersectedStreamInfoQ_portA,
+			 kernelMain_intersection_intersectedStreamQ_portB,
+			 kernelMain_intersection_intersectedStreamQ_portB_read_data,
+			 kernelMain_intersection_intersectedStreamQ_portA,
+			 kernelMain_intersection_intersectedTupleStageQ_portB_read_data,
+			 kernelMain_intersection_mergeInfoStreams,
+			 kernelMain_intersection_intersectedTupleStageQ_portA,
+			 kernelMain_intersection_intersectedTupleStageQ_portB,
+			 kernelMain_intersection_outputQ_portB,
+			 kernelMain_intersection_outputQ_portB_read_data,
+			 kernelMain_intersection_outputQ_portA
+
+========================================
