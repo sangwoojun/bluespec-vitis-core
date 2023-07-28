@@ -1,0 +1,134 @@
+=== Generated schedule for mkSimTop ===
+
+Rule schedule
+-------------
+Rule: si_doIntersect
+Predicate: si_streamAQ.i_notEmpty &&
+	   si_streamBQ.i_notEmpty &&
+	   ((! ((si_streamAQ.first[256]
+		 ? si_streamAQ.first[31:0]
+		 : (_ :: Bit 32)) <=
+		(si_streamBQ.first[256]
+		 ? si_streamBQ.first[255:224]
+		 : (_ :: Bit 32)))) ||
+	    (! ((si_streamBQ.first[256]
+		 ? si_streamBQ.first[31:0]
+		 : (_ :: Bit 32)) <=
+		(si_streamAQ.first[256]
+		 ? si_streamAQ.first[255:224]
+		 : (_ :: Bit 32)))) ||
+	    (si_unrollQs_0.i_notFull && si_unrollQs_1.i_notFull)) &&
+	   si_streamAQ.first[256] && si_streamBQ.first[256]
+Blocking rules: (none)
+ 
+Rule: si_doFFA
+Predicate: si_streamAQ.i_notEmpty && si_streamBQ.i_notEmpty &&
+	   (! si_streamAQ.first[256]) && si_streamBQ.first[256]
+Blocking rules: (none)
+ 
+Rule: si_doFFB
+Predicate: si_streamAQ.i_notEmpty && si_streamBQ.i_notEmpty &&
+	   si_streamAQ.first[256] && (! si_streamBQ.first[256])
+Blocking rules: (none)
+ 
+Rule: si_doFFBoth
+Predicate: si_streamAQ.i_notEmpty &&
+	   si_streamBQ.i_notEmpty &&
+	   si_unrollQs_0.i_notFull && si_unrollQs_1.i_notFull &&
+	   (! si_streamAQ.first[256]) && (! si_streamBQ.first[256])
+Blocking rules: (none)
+ 
+Rule: si_unrollWords
+Predicate: (si_unrollWordCnt_0 == 8'd0)
+	   ? si_unrollQs_0.i_notEmpty &&
+	     (si_unrollQs_0.first[256] || si_unrolledQs_0.i_notFull) &&
+	     ((! si_unrollQs_0.first[256]) || si_unrolledQs_0.i_notFull)
+	   : si_unrolledQs_0.i_notFull
+Blocking rules: (none)
+ 
+Rule: si_unrollWords_1
+Predicate: (si_unrollWordCnt_1 == 8'd0)
+	   ? si_unrollQs_1.i_notEmpty &&
+	     (si_unrollQs_1.first[256] || si_unrolledQs_1.i_notFull) &&
+	     ((! si_unrollQs_1.first[256]) || si_unrolledQs_1.i_notFull)
+	   : si_unrolledQs_1.i_notFull
+Blocking rules: (none)
+ 
+Rule: si_intersectUnrolled
+Predicate: si_unrolledQs_0.i_notEmpty &&
+	   ((! si_unrolledQs_0.first[32]) || si_unrolledQs_1.i_notEmpty) &&
+	   ((si_unrolledQs_0.first[32] && si_unrolledQs_1.first[32])
+	    ? si_unrolledQs_1.i_notEmpty &&
+	      (((si_unrolledQs_0.first[32]
+		 ? si_unrolledQs_0.first[31:0]
+		 : (_ :: Bit 32)) <
+		(si_unrolledQs_1.first[32]
+		 ? si_unrolledQs_1.first[31:0]
+		 : (_ :: Bit 32))) ||
+	       (! ((si_unrolledQs_0.first[32]
+		    ? si_unrolledQs_0.first[31:0]
+		    : (_ :: Bit 32)) <=
+		   (si_unrolledQs_1.first[32]
+		    ? si_unrolledQs_1.first[31:0]
+		    : (_ :: Bit 32)))) ||
+	       si_intersectedQ.i_notFull)
+	    : ((si_unrolledQs_0.first[32] || si_unrolledQs_1.i_notEmpty) &&
+	       (((! si_unrolledQs_0.first[32]) &&
+		 si_unrolledQs_1.first[32]) ||
+		(si_unrolledQs_0.first[32] &&
+		 (! si_unrolledQs_1.first[32])) ||
+		(si_unrolledQs_1.i_notEmpty && si_intersectedQ.i_notFull)) &&
+	       (si_unrolledQs_0.first[32] || (! si_unrolledQs_1.first[32]) ||
+		si_unrolledQs_1.i_notEmpty)))
+Blocking rules: (none)
+ 
+Rule: si_deserializeOut
+Predicate: si_intersectedQ.i_notEmpty &&
+	   (si_intersectedQ.first[32]
+	    ? (! (si_deserializeWordCnt == 8'd7)) || si_streamOutQ.i_notFull
+	    : (((si_deserializeWordCnt == 8'd0) || si_streamOutQ.i_notFull) &&
+	       ((! (si_deserializeWordCnt == 8'd0)) ||
+		si_streamOutQ.i_notFull))) &&
+	   (! si_shouldFlushDes)
+Blocking rules: (none)
+ 
+Rule: si_flushDes
+Predicate: si_streamOutQ.i_notFull && si_shouldFlushDes
+Blocking rules: (none)
+ 
+Rule: inputDataA
+Predicate: si_streamAQ.i_notFull && (addroffA < 32'd1024)
+Blocking rules: (none)
+ 
+Rule: inputDataB
+Predicate: si_streamBQ.i_notFull && (addroffB < 32'd1024)
+Blocking rules: (none)
+ 
+Rule: capinputA
+Predicate: si_streamAQ.i_notFull && (addroffA == 32'd1024)
+Blocking rules: (none)
+ 
+Rule: capinputB
+Predicate: si_streamBQ.i_notFull && (addroffB == 32'd1024)
+Blocking rules: (none)
+ 
+Rule: sinkOut
+Predicate: si_streamOutQ.i_notEmpty
+Blocking rules: (none)
+ 
+Logical execution order: inputDataA,
+			 inputDataB,
+			 capinputA,
+			 capinputB,
+			 sinkOut,
+			 si_doIntersect,
+			 si_doFFA,
+			 si_doFFB,
+			 si_doFFBoth,
+			 si_unrollWords,
+			 si_unrollWords_1,
+			 si_intersectUnrolled,
+			 si_deserializeOut,
+			 si_flushDes
+
+========================================
