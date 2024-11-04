@@ -12,3 +12,4 @@ _x
 /xclbin
 /emconfig.json
 /reports
+*.dat

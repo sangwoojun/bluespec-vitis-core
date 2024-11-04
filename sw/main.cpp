@@ -1,11 +1,8 @@
-#/*
-#Copyright (C) 2023, Advanced Micro Devices, Inc. All rights reserved.
-#SPDX-License-Identifier: X11
-#*/
-
-//#include "cmdlineparser.h"
 #include <iostream>
 #include <cstring>
+#include <vector>
+#include <algorithm>
+#include <chrono>
 
 // XRT includes
 #include "xrt/xrt_bo.h"
@@ -13,11 +10,96 @@
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_kernel.h"
 
-#define DATA_SIZE (1024*1024*128)
+#include "ColumnSorter.h"
 
-#define CHANNEL_SIZE (1024*1024*256)
+//#define CHANNEL_SIZE (1024*1024*256)
+//#define CHANNEL_COUNT (32)
+#define CHANNEL_SIZE (1024L*1024*32)
+#define CHANNEL_COUNT (16L)
+
+typedef struct {
+	FILE* fp;
+	size_t words;
+} TempFile;
+
+typedef enum {
+	ELEMENT96,
+	ELEMENT128
+} ElementType;
+
+// NOTE: pragmas are probably unnecessary since both elements types are 32-bit aligned.
+// but packing pragmas included just in case.
+// This pragma only works definitively for GCC/VC++. Beware if you're using something else.
+#pragma pack(push, 1)
+typedef struct {
+	uint32_t key[2];
+	uint32_t val;
+} Element96;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+	uint32_t key[2];
+	uint32_t val[2];
+} Element128;
+#pragma pack(pop)
+
+FILE* column_sort(FILE* fin) {
+	FILE* ftemp1 = fopen( "temp1.dat", "wb+" );
+	FILE* ftemp2 = fopen( "temp2.dat", "wb+" );
+
+	size_t memsize = CHANNEL_SIZE;
+	memsize *= CHANNEL_COUNT;
+
+	size_t sort_unit_bytes = memsize/2;
+	size_t sort_unit_words = sort_unit_bytes/sizeof(uint32_t);
+	int thread_count = 8;
+
+	std::vector<TempFile> v_temp_file_list;
+
+	//ColumnSorter<Element128> *sorter = new ColumnSorter<Element128>(sort_unit_bytes);
+	ColumnSorter<Element128> *sorter = new ColumnSorter<Element128>(sort_unit_bytes, thread_count);
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+
+	size_t sorted_bytes = sorter->SortAllColumns(fin, ftemp1);
+	
+	auto end = std::chrono::high_resolution_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	printf( "Sort 1 -- %ld\n", elapsed.count() ); fflush(stdout);
+
+	start = std::chrono::high_resolution_clock::now();
+	// transpose
+	sorter->Transpose(ftemp1, ftemp2);
+	end = std::chrono::high_resolution_clock::now();
+	elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	printf( "Transpose 1 -- %ld\n", elapsed.count() ); fflush(stdout);
+
+	//sort
+	sorter->SortAllColumns(ftemp2, ftemp1);
+	printf( "Sort 2\n" ); fflush(stdout);
+
+	//un-transpose
+	sorter->UnTranspose(ftemp1, ftemp2);
+	printf( "UnTranspose\n" ); fflush(stdout);
+
+	//sort
+	sorter->SortAllColumns(ftemp2, ftemp1);
+	printf( "Sort 3\n" ); fflush(stdout);
+
+	//shift
+	//sort
+	//un-shift
+	sorter->SortAllColumns(ftemp1, ftemp2, true);
+	printf( "ShiftedSort\n" ); fflush(stdout);
+
+	return ftemp2;
+}
 
 int main(int argc, char** argv) {
+	
+	ElementType element_type = ELEMENT96;
 
 	if ( argc != 2 ) {
 		printf( "usage: %s [filename]\n", argv[0] );
@@ -27,16 +109,33 @@ int main(int argc, char** argv) {
 
 
 	FILE* fin = fopen(argv[1], "rb");
-	if ( fin != NULL ) {
+	if ( fin == NULL ) {
 		printf( "Failed to open file %s\n", argv[1] );
 		exit(2);
 	}
 
-	
-	uint32_t* inrdbuf = (uint32_t*)malloc();
-	while (!feof(fin)) {
-		
+
+	FILE* fdone = column_sort(fin);
+
+	rewind(fdone);
+
+	size_t mismatch_cnt = 0;
+	Element128 e;
+	Element128 last = {0};
+	while (!feof(fdone)) {
+		size_t r = fread(&e, sizeof(Element128), 1, fdone);
+		if ( r != 1 ) continue;
+
+		if (ColumnSorter<Element128>::compareElementsLess(e, last) ) {
+			printf( "Mismatch: %lx --  %lx %lx\n", ftell(fdone), *(uint64_t*)(&e.key[0]), *(uint64_t*)(&last.key[0]) );
+			mismatch_cnt++;
+		}
+
+		last = e;
 	}
+
+
+	printf("Done! With Mismatch: %ld\n", mismatch_cnt);
 
 
 
