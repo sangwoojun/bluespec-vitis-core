@@ -22,11 +22,6 @@ typedef struct {
 	size_t words;
 } TempFile;
 
-typedef enum {
-	ELEMENT96,
-	ELEMENT128
-} ElementType;
-
 // NOTE: pragmas are probably unnecessary since both elements types are 32-bit aligned.
 // but packing pragmas included just in case.
 // This pragma only works definitively for GCC/VC++. Beware if you're using something else.
@@ -44,6 +39,7 @@ typedef struct {
 } Element128;
 #pragma pack(pop)
 
+template <typename T>
 FILE* column_sort(FILE* fin) {
 	FILE* ftemp1 = fopen( "temp1.dat", "wb+" );
 	FILE* ftemp2 = fopen( "temp2.dat", "wb+" );
@@ -52,18 +48,19 @@ FILE* column_sort(FILE* fin) {
 	memsize *= CHANNEL_COUNT;
 
 	size_t sort_unit_bytes = memsize/2;
-	size_t sort_unit_words = sort_unit_bytes/sizeof(uint32_t);
+	//size_t sort_unit_words = sort_unit_bytes/sizeof(uint32_t);
 	int thread_count = 8;
 
 	std::vector<TempFile> v_temp_file_list;
 
 	//ColumnSorter<Element128> *sorter = new ColumnSorter<Element128>(sort_unit_bytes);
-	ColumnSorter<Element96> *sorter = new ColumnSorter<Element96>(sort_unit_bytes, thread_count);
+	ColumnSorter<T> *sorter = new ColumnSorter<T>(sort_unit_bytes, thread_count);
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 
-	size_t sorted_bytes = sorter->SortAllColumns(fin, ftemp1);
+	//size_t sorted_bytes = 
+	sorter->SortAllColumns(fin, ftemp1);
 	
 	auto end = std::chrono::high_resolution_clock::now();
 	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -97,10 +94,32 @@ FILE* column_sort(FILE* fin) {
 	return ftemp2;
 }
 
+template <typename T>
+bool check_sorted(FILE* fin) {
+	rewind(fin);
+
+	size_t mismatch_cnt = 0;
+	T e;
+	T last = {0};
+	while (!feof(fin)) {
+		size_t r = fread(&e, sizeof(T), 1, fin);
+		if ( r != 1 ) continue;
+
+		if (ColumnSorter<T>::compareElementsLess(e, last) ) {
+			printf( "Mismatch: %lx --  %lx %lx\n", ftell(fin), *(uint64_t*)(&e.key[0]), *(uint64_t*)(&last.key[0]) );
+			mismatch_cnt++;
+		}
+
+		last = e;
+	}
+
+	printf("Check done! With Mismatch: %ld\n", mismatch_cnt);
+	if ( mismatch_cnt == 0 ) return true;
+	else return false;
+}
+
 int main(int argc, char** argv) {
 	
-	ElementType element_type = ELEMENT96;
-
 	if ( argc != 2 ) {
 		printf( "usage: %s [filename]\n", argv[0] );
 		// TODO: parameterize kv bytes?
@@ -115,27 +134,9 @@ int main(int argc, char** argv) {
 	}
 
 
-	FILE* fdone = column_sort(fin);
+	FILE* fdone = column_sort<Element96>(fin);
+	check_sorted<Element96>(fdone);
 
-	rewind(fdone);
-
-	size_t mismatch_cnt = 0;
-	Element96 e;
-	Element96 last = {0};
-	while (!feof(fdone)) {
-		size_t r = fread(&e, sizeof(Element96), 1, fdone);
-		if ( r != 1 ) continue;
-
-		if (ColumnSorter<Element96>::compareElementsLess(e, last) ) {
-			printf( "Mismatch: %lx --  %lx %lx\n", ftell(fdone), *(uint64_t*)(&e.key[0]), *(uint64_t*)(&last.key[0]) );
-			mismatch_cnt++;
-		}
-
-		last = e;
-	}
-
-
-	printf("Done! With Mismatch: %ld\n", mismatch_cnt);
 
 
 

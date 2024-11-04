@@ -127,7 +127,7 @@ ColumnSorter<T>::ReadSortWriteWorker(WorkerThreadArg arg) {
 	
 	m_mutex.lock();
 	fseek(fout, file_offset, SEEK_SET);
-	size_t write_elements = fwrite(m_inbuf_array[idx], sizeof(T), m_buffer_elements_max, fout);
+	/*size_t write_elements =*/ fwrite(m_inbuf_array[idx], sizeof(T), m_buffer_elements_max, fout);
 	m_mutex.unlock();
 	//printf( "Thread finished! Wrote %ld bytes to %ld\n", write_elements*sizeof(T), file_offset );
 }
@@ -142,13 +142,13 @@ ColumnSorter<T>::SortAllColumns(FILE* fin, FILE* fout, bool shift) {
 
 	printf( "Sorting all columns of file size %ld\n", file_size );
 
-	T last_val = {0};
+	//T last_val = {0};
 	size_t work_offset_elements = 0;
 
 	//while (!feof(fin)) {
 	size_t wcount = (file_size+ (m_buffer_elements_max*sizeof(T)-1))/(m_buffer_elements_max*sizeof(T))+1; // plus one because of two half reads
 	for ( size_t bid = 0; bid < wcount; bid++) {
-		size_t cur_off = work_offset_elements*sizeof(T);
+		//size_t cur_off = work_offset_elements*sizeof(T);
 		//if ( shift && ( cur_off == 0 || cur_off >= file_size-(m_buffer_elements_max*sizeof(T)/2)  ) ) {
 		if ( shift && ( bid == 0 || bid == wcount-1) ) {
 			for ( int i = 0; i < m_thread_max; i++ ) {
@@ -287,7 +287,7 @@ ColumnSorter<T>::UnTranspose(FILE* fin, FILE* fout) {
 		for ( size_t c = 0; c < columns; c++ ) {
 			size_t file_offset_elements = c*m_buffer_elements_max + percol_offset;
 			fseek(fin, file_offset_elements*sizeof(T), SEEK_SET);
-			size_t read_elements = fread(m_inbuf+(c*newrows), sizeof(T), newrows, fin);
+			/*size_t read_elements = */ fread(m_inbuf+(c*newrows), sizeof(T), newrows, fin);
 		}
 
 		memset(m_outbuf, 0xff, m_buffer_bytes);
