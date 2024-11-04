@@ -5,11 +5,11 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <thread>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <stdint.h>
 
 // XRT includes
@@ -18,15 +18,25 @@
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_kernel.h"
 
+#define MAX_THREADS 64
+
+typedef struct {
+	int idx;
+	size_t offset_elements;
+	FILE* fin;
+	FILE* fout;
+	bool working;
+} WorkerThreadArg;
 
 template <typename T>
 class ColumnSorter {
 public:
-	ColumnSorter(size_t buffer_bytes, int threads);
+	ColumnSorter(size_t buffer_bytes, int thread_count);
 
 	size_t ReadFile(FILE* fin, bool half=false);
 	size_t WriteFile(FILE* fout, bool half=false, size_t elements = 0);
 	void Sort();
+	void ReadSortWriteWorker(WorkerThreadArg arg);
 
 	size_t SortAllColumns(FILE* fin, FILE* fout, bool shift=false);
 	void Transpose(FILE* fin, FILE* fout);
@@ -34,6 +44,7 @@ public:
 	void InitFile(FILE* fout, size_t bytes);
 	
 	static bool compareElementsLess(T a, T b);
+
 private:
 	T* m_inbuf; 
 	T* m_outbuf; 
@@ -41,16 +52,31 @@ private:
 	size_t m_buffer_elements_max;
 	size_t m_buffer_elements;
 
+	std::thread m_worker_threads[MAX_THREADS];
+	WorkerThreadArg m_worker_args[MAX_THREADS];
+	T* m_inbuf_array[MAX_THREADS];
+	//T* m_outbuf_array[MAX_THREADS];
+	int m_next_thread_idx;
+	int m_thread_max;
+	std::mutex m_mutex;
+
 };
 
 template <typename T>
-ColumnSorter<T>::ColumnSorter(size_t buffer_bytes, int threads) {
+ColumnSorter<T>::ColumnSorter(size_t buffer_bytes, int thread_count) {
 	m_inbuf = (T*)malloc(buffer_bytes);
 	m_outbuf = (T*)malloc(buffer_bytes);
 	m_buffer_bytes = buffer_bytes;
 	m_buffer_elements_max = buffer_bytes/sizeof(T);
 	printf( "Created sorter with buffer size %ld (%ld elements)\n", m_buffer_bytes, m_buffer_elements_max );
 	printf( "Size of elements: %ld bytes\n", sizeof(T) );
+
+	m_thread_max = thread_count;
+	for ( int i = 0; i < thread_count; i++ ) {
+		m_inbuf_array[i] = (T*)malloc(buffer_bytes);
+		//m_outbuf_array[i] = (T*)malloc(buffer_bytes);
+		m_worker_args[i].working = false;
+	}
 }
 
 template <typename T>
@@ -69,7 +95,6 @@ ColumnSorter<T>::WriteFile(FILE* fout, bool half, size_t elements) {
 	if ( !write_elements ) {
 		write_elements = half?m_buffer_elements_max/2:m_buffer_elements_max;
 	}
-	//printf( "Writing %lx elements\n", write_elements );
 	return fwrite(m_outbuf, sizeof(T), write_elements, fout);
 }
 
@@ -78,6 +103,33 @@ void
 ColumnSorter<T>::Sort() {
 	std::sort(m_inbuf, m_inbuf+m_buffer_elements_max, compareElementsLess);
 	memcpy(m_outbuf, m_inbuf, m_buffer_bytes);
+}
+
+template <typename T>
+void
+ColumnSorter<T>::ReadSortWriteWorker(WorkerThreadArg arg) {
+	//printf( "Thread start\n" );
+	int idx = arg.idx;
+	FILE* fin = arg.fin;
+	FILE* fout = arg.fout;
+
+	size_t file_offset = arg.offset_elements*sizeof(T);
+	memset(m_inbuf_array[idx], 0xff, m_buffer_bytes);
+	//printf( "Memset done: 0x%lx\n", m_buffer_bytes);
+
+	m_mutex.lock();
+	fseek(fin, file_offset, SEEK_SET);
+	m_buffer_elements = fread(m_inbuf_array[idx], sizeof(T), m_buffer_elements_max, fin);
+	m_mutex.unlock();
+	//printf( "Fread done: 0x%lx\n", m_buffer_elements_max);
+	std::sort(m_inbuf_array[idx], m_inbuf_array[idx]+m_buffer_elements_max, compareElementsLess);
+	//printf( "Sort done: 0x%lx\n", m_buffer_elements_max);
+	
+	m_mutex.lock();
+	fseek(fout, file_offset, SEEK_SET);
+	size_t write_elements = fwrite(m_inbuf_array[idx], sizeof(T), m_buffer_elements_max, fout);
+	m_mutex.unlock();
+	//printf( "Thread finished! Wrote %ld bytes to %ld\n", write_elements*sizeof(T), file_offset );
 }
 
 template <typename T>
@@ -91,27 +143,32 @@ ColumnSorter<T>::SortAllColumns(FILE* fin, FILE* fout, bool shift) {
 	printf( "Sorting all columns of file size %ld\n", file_size );
 
 	T last_val = {0};
-	uint64_t mismatch_count = 0;
+	size_t work_offset_elements = 0;
 
-	while (!feof(fin)) {
-		size_t cur_off = ftell(fin);
-		if ( shift && ( cur_off == 0 || cur_off >= file_size-(m_buffer_bytes/2)  ) ) {
-			size_t read_elements = this->ReadFile(fin, true);
-			if ( read_elements == 0 ) continue;
-			memcpy(m_outbuf, m_inbuf, (sizeof(T)*m_buffer_elements_max)/2);
-			
-			this->WriteFile(fout, true);
-			
-			for ( size_t i = 0; i < m_buffer_elements_max/2; i++ ) {
-				if ( compareElementsLess( m_inbuf[i], last_val) ) {
-					mismatch_count ++;
-					printf( "Mismatch --%lx: %x %x ~~ %x %x\n",i, last_val.key[1], last_val.key[0], m_inbuf[i].key[1], m_inbuf[i].key[0] );
+	//while (!feof(fin)) {
+	size_t wcount = (file_size+ (m_buffer_elements_max*sizeof(T)-1))/(m_buffer_elements_max*sizeof(T))+1; // plus one because of two half reads
+	for ( size_t bid = 0; bid < wcount; bid++) {
+		size_t cur_off = work_offset_elements*sizeof(T);
+		//if ( shift && ( cur_off == 0 || cur_off >= file_size-(m_buffer_elements_max*sizeof(T)/2)  ) ) {
+		if ( shift && ( bid == 0 || bid == wcount-1) ) {
+			for ( int i = 0; i < m_thread_max; i++ ) {
+				if ( m_worker_args[i].working ) {
+					m_worker_threads[i].join();
+					m_worker_args[i].working = false;
 				}
-				last_val = m_inbuf[i];
 			}
 			
+
+			size_t read_elements = this->ReadFile(fin, true);
+			if ( read_elements == 0 ) continue;
+			
+			memcpy(m_outbuf, m_inbuf, sizeof(T)*m_buffer_elements_max/2);
+			this->WriteFile(fout, true);
+			work_offset_elements += m_buffer_elements_max/2;
 			printf( "Doing half reads\n" );
 		} else {
+			
+			/*
 			size_t read_elements = this->ReadFile(fin);
 			if ( read_elements == 0 ) continue;
 			this->Sort();
@@ -120,20 +177,35 @@ ColumnSorter<T>::SortAllColumns(FILE* fin, FILE* fout, bool shift) {
 			if ( read_elements != m_buffer_elements_max ) {
 				printf( "Read element count not full buffer! %ld %ld\n", read_elements, m_buffer_elements_max );
 			}
-			for ( size_t i = 0; i < m_buffer_elements_max; i++ ) {
-				if ( compareElementsLess( m_outbuf[i], last_val) ) {
-					mismatch_count ++;
-					printf( "Mismatch --%lx: %x %x (%lx) ~~ %x %x\n",i, last_val.key[1], last_val.key[0],
-						*((uint64_t*)(last_val.key)),
-						m_outbuf[i].key[1], m_outbuf[i].key[0] );
-
-				}
-				last_val = m_outbuf[i];
+			*/
+			
+			if ( m_worker_args[m_next_thread_idx].working ) {
+				m_worker_threads[m_next_thread_idx].join();
 			}
+			m_worker_args[m_next_thread_idx].working = true;
+			m_worker_args[m_next_thread_idx].fin = fin;
+			m_worker_args[m_next_thread_idx].fout = fout;
+			m_worker_args[m_next_thread_idx].idx = m_next_thread_idx;
+			m_worker_args[m_next_thread_idx].offset_elements = work_offset_elements;
+			m_worker_threads[m_next_thread_idx] = std::thread(&ColumnSorter<T>::ReadSortWriteWorker, this, m_worker_args[m_next_thread_idx]);
+
+			m_next_thread_idx = (m_next_thread_idx+1)%m_thread_max;
+
+			work_offset_elements += m_buffer_elements_max;
 		}
 	}
+
+	for ( int i = 0; i < m_thread_max; i++ ) {
+		if ( m_worker_args[i].working ) {
+			m_worker_threads[i].join();
+			m_worker_args[i].working = false;
+		}
+	}
+
+
+	fseek(fout, 0, SEEK_END);
 	size_t fout_bytes = ftell(fout); 
-	printf( "Sort phase done with %ld mismatches -- %ld bytes\n", mismatch_count, fout_bytes );
+	printf( "Sort phase done -- %ld bytes\n", fout_bytes );
 	return fout_bytes;
 }
 
@@ -147,29 +219,29 @@ ColumnSorter<T>::Transpose(FILE* fin, FILE* fout) {
 	rewind(fin);
 	rewind(fout);
 
-	if ( file_size_out < file_size ) {
-		InitFile(fout, file_size-file_size_out);
-	}
-	rewind(fout);
 	
 	// Number of columns calculated from file size
 	size_t columns = (file_size+((m_buffer_elements_max*sizeof(T))-1))/m_buffer_bytes;
 
+	printf( "Starting transpose: %ld columns\n", columns );
+	
+	if ( file_size_out < file_size ) {
+		InitFile(fout, file_size-file_size_out);
+	}
+	rewind(fout);
 
 	size_t cur_coloff = 0;
+	// column size may not be multiple of columns!
+	// TODO leftover elements (<columns) need to be handled separately
+	size_t newrows = m_buffer_elements/columns;
+	size_t row_remainder = m_buffer_elements%columns;
 
-	printf( "Starting transpose: %ld columns\n", columns );
+	printf( "row_remainder: %ld -- TODO these elements should be handled separately\n", row_remainder );
+
 	
 	while (!feof(fin)) {
 		size_t read_elements = this->ReadFile(fin);
 		if ( read_elements == 0 ) continue;
-
-		// column size may not be multiple of columns!
-		// TODO leftover elements (<columns) need to be handled separately
-		size_t newrows = m_buffer_elements/columns;
-		size_t row_remainder = m_buffer_elements%columns;
-
-		printf( "row_remainder: %ld -- TODO these elements should be handled separately\n", row_remainder );
 
 		memset(m_outbuf, 0xff, m_buffer_bytes);
 		for ( size_t col = 0; col < columns; col++ ) {
@@ -188,7 +260,7 @@ ColumnSorter<T>::Transpose(FILE* fin, FILE* fout) {
 		}
 		cur_coloff += newrows;
 
-		printf("%lx -- %ld\n", cur_coloff, read_elements);
+		//printf("%lx -- %ld\n", cur_coloff, read_elements);
 	}
 }
 	
@@ -229,8 +301,6 @@ ColumnSorter<T>::UnTranspose(FILE* fin, FILE* fout) {
 		WriteFile(fout, false, columns*newrows);
 	}
 }
-
-
 
 
 template <typename T>

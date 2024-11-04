@@ -58,7 +58,7 @@ FILE* column_sort(FILE* fin) {
 	std::vector<TempFile> v_temp_file_list;
 
 	//ColumnSorter<Element128> *sorter = new ColumnSorter<Element128>(sort_unit_bytes);
-	ColumnSorter<Element128> *sorter = new ColumnSorter<Element128>(sort_unit_bytes, thread_count);
+	ColumnSorter<Element96> *sorter = new ColumnSorter<Element96>(sort_unit_bytes, thread_count);
 
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -120,13 +120,13 @@ int main(int argc, char** argv) {
 	rewind(fdone);
 
 	size_t mismatch_cnt = 0;
-	Element128 e;
-	Element128 last = {0};
+	Element96 e;
+	Element96 last = {0};
 	while (!feof(fdone)) {
-		size_t r = fread(&e, sizeof(Element128), 1, fdone);
+		size_t r = fread(&e, sizeof(Element96), 1, fdone);
 		if ( r != 1 ) continue;
 
-		if (ColumnSorter<Element128>::compareElementsLess(e, last) ) {
+		if (ColumnSorter<Element96>::compareElementsLess(e, last) ) {
 			printf( "Mismatch: %lx --  %lx %lx\n", ftell(fdone), *(uint64_t*)(&e.key[0]), *(uint64_t*)(&last.key[0]) );
 			mismatch_cnt++;
 		}
