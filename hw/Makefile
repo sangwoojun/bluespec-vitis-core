@@ -1,8 +1,9 @@
 TARGET := hw
+PROJECT := sort
 PLATFORM ?= xilinx_u50_gen3x16_xdma_5_202210_1
-HOSTDIR := ../sw
+HOSTDIR := ../sw/$(PROJECT)_host/
 CONFIGDIR := ./configs
-KERNEL := ./sort_kernel
+KERNEL := ./$(PROJECT)_kernel
 BUILD_DIR := ./$(TARGET)
 CXXFLAGS += -g -std=c++17 -Wall -O2
 
