@@ -40,9 +40,12 @@ typedef struct {
 #pragma pack(pop)
 
 template <typename T>
-FILE* column_sort(FILE* fin) {
-	FILE* ftemp1 = fopen( "temp1.dat", "wb+" );
-	FILE* ftemp2 = fopen( "temp2.dat", "wb+" );
+FILE* column_sort(FILE* fin, std::string temp_dir) {
+
+	std::string fpath1 = temp_dir + "/temp1.dat";
+	std::string fpath2 = temp_dir + "/temp2.dat";
+	FILE* ftemp1 = fopen( fpath1.c_str(), "wb+" );
+	FILE* ftemp2 = fopen( fpath2.c_str(), "wb+" );
 
 	size_t memsize = CHANNEL_SIZE;
 	memsize *= CHANNEL_COUNT;
@@ -120,10 +123,15 @@ bool check_sorted(FILE* fin) {
 
 int main(int argc, char** argv) {
 	
-	if ( argc != 2 ) {
-		printf( "usage: %s [filename]\n", argv[0] );
+	if ( argc < 2 ) {
+		printf( "usage: %s [filename] [temporary directory]\n", argv[0] );
 		// TODO: parameterize kv bytes?
 		exit(1);
+	}
+
+	std::string temp_dir = "./";
+	if ( argc > 2 ) {
+		temp_dir = argv[1];
 	}
 
 
@@ -134,7 +142,7 @@ int main(int argc, char** argv) {
 	}
 
 
-	FILE* fdone = column_sort<Element96>(fin);
+	FILE* fdone = column_sort<Element96>(fin, temp_dir);
 	check_sorted<Element96>(fdone);
 
 
