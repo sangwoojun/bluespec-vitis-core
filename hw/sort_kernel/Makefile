@@ -4,7 +4,7 @@ BSCFLAGS = -show-schedule -aggressive-conditions
 BSCFLAGS_SYNTH = -bdir ./obj -vdir ./obj/verilog -simdir ./obj -info-dir ./obj -fdir ./obj 
 TARGET := hw
 BUILD_DIR := ../$(TARGET)
-BLIB_DIR = $(ROOT_DIR)/../bluelib/
+BLIB_DIR = $(ROOT_DIR)/../bluelib/src
 
 .PHONY: all verilog
 
@@ -21,7 +21,7 @@ obj/kernel.xo: ./kernel.xml ./scripts/package_kernel.tcl ./scripts/gen_xo.tcl $(
 verilog: $(wildcard *.bsv) $(wildcard *.v)
 	mkdir -p obj
 	mkdir -p obj/verilog
-	bsc  $(BSCFLAGS) $(BSCFLAGS_SYNTH) -remove-dollar -p +:$(MODULEPATH) -verilog -u -g kernel KernelTop.bsv 
+	bsc  $(BSCFLAGS) $(BSCFLAGS_SYNTH) -remove-dollar -p +:$(MODULEPATH):$(BLIB_DIR) -verilog -u -g kernel KernelTop.bsv 
 	cd obj/verilog/;bash ../../scripts/verilogcopy.sh
 	cp *.v ./obj/verilog/
 	
