@@ -2,6 +2,8 @@ import FIFO::*;
 import FIFOF::*;
 import Vector::*;
 
+import BLMergeSorterSingle::*;
+
 typedef 2 MemPortCnt;
 
 interface MemPortIfc;
@@ -22,10 +24,12 @@ typedef struct {
 	Bit#(32) bytes;
 } MemPortReq deriving (Eq,Bits);
 
-typedef 128 Kval;
-typedef 128 Wval;
-//typedef 35 Kval;
-//typedef 40 Wval;
+
+typedef 16 MergeSrcCount;
+typedef 48 KeyBits;
+typedef 48 ValBits;
+typedef 29 BufferBytesSz;
+typedef TExp#(BufferBytesSz) BufferBytes;
 
 module mkKernelMain(KernelMainIfc);
 	Vector#(MemPortCnt, FIFO#(MemPortReq)) readReqQs <- replicateM(mkFIFO);
@@ -48,6 +52,11 @@ module mkKernelMain(KernelMainIfc);
 	endrule
 
 	//////////////////////////////////////////////////////////////////////////
+
+	BLMergeSorterSingleIfc#(MergeSrcCount, Bit#(KeyBits), Bit#(ValBits)) mergeSorter <- mkBLMergeSorterSingle;
+
+
+
 	Reg#(Bit#(64)) readReqOff <- mkReg(0);
 	Reg#(Bit#(64)) writeReqOff <- mkReg(0);
 

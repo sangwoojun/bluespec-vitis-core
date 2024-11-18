@@ -1,5 +1,5 @@
 TARGET := hw
-PROJECT := sort
+PROJECT := bancroft_compress
 PLATFORM ?= xilinx_u50_gen3x16_xdma_5_202210_1
 HOSTDIR := ../sw/$(PROJECT)_host/
 CONFIGDIR := ./configs
@@ -11,7 +11,7 @@ KERNEL_DIRS = $(shell find $(KERNEL) -type d)
 KERNEL_FILES = $(shell find $(KERNEL) -type f -name '*')
 
 JOBS := 8
-VPPFLAGS := --vivado.param general.maxThreads=8 --vivado.impl.jobs 8 --vivado.synth.jobs 8 --temp_dir $(BUILD_DIR) --log_dir $(BUILD_DIR) --report_dir $(BUILD_DIR)
+VPPFLAGS := --vivado.param general.maxThreads=$(JOBS) --vivado.impl.jobs $(JOBS) --vivado.synth.jobs $(JOBS) --temp_dir $(BUILD_DIR) --log_dir $(BUILD_DIR) --report_dir $(BUILD_DIR) --report_level 2
 
 
 build: package
@@ -34,6 +34,7 @@ endif
 xclbin: $(BUILD_DIR)/kernel.xclbin
 $(BUILD_DIR)/kernel.xclbin: $(BUILD_DIR)/kernel.xo
 	v++ -l -t ${TARGET} --platform $(PLATFORM) --config $(CONFIGDIR)/u50.cfg $(VPPFLAGS) $(BUILD_DIR)/kernel.xo -o $(BUILD_DIR)/kernel.xclbin
+	vivado -mode batch -source ./scripts/report_hierarchical_utilization.tcl -tclargs $(BUILD_DIR)
 
 emconfig: $(BUILD_DIR)/emconfig.json
 $(BUILD_DIR)/emconfig.json:
