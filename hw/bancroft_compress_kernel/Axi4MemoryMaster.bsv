@@ -82,6 +82,12 @@ interface Axi4MemoryMasterIfc#(numeric type addrSz, numeric type dataSz);
   */
 endinterface
 
+(* synthesize *)
+module mkAxi4MemoryMaster_64_512 (Axi4MemoryMasterIfc#(64,512));
+	let m_ <- mkAxi4MemoryMaster;
+	return m_;
+endmodule
+
 module mkAxi4MemoryMaster (Axi4MemoryMasterIfc#(addrSz,dataSz))
 	provisos(
 		Add#(a__,8,addrSz),

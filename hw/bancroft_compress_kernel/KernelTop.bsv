@@ -25,8 +25,8 @@ module kernel (KernelTopIfc);
 	Reset defaultReset <- exposeCurrentReset;
 
 	Axi4LiteControllerXrtIfc#(12,32) axi4control <- mkAxi4LiteControllerXrt(defaultClock, defaultReset);
-	Vector#(2, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster);
-	//Axi4MemoryMasterIfc#(64,512) axi4file <- mkAxi4MemoryMaster;
+	Vector#(2, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster_64_512);
+	//Vector#(2, Axi4MemoryMasterIfc#(64,512)) axi4mem <- replicateM(mkAxi4MemoryMaster);
 
 	Reg#(Bit#(32)) cycleCounter <- mkReg(0);
 	rule incCycle;
