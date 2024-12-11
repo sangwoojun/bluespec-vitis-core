@@ -5,6 +5,10 @@ Boilerplace codebase for using Bluespec System Verilog for Xilinx Alveo FPGA ker
 * hw/
 * sw/
 
+## Clone bluelib
+* bluespec-vitis-core depends on the bluelib library, which can be found here https://github.com/sangwoojun/bluelib.
+* By default, bluelib must be cloned at the same level as bluespec-vitis-core (e.g., ~/bluespec-vitis-core and ~/bluelib).
+
 ## How to build
 * Build/packaging kernel, xclbin, and hw: cd to hw/ run `make`
 * Using a different kernel: `make KERNEL=sort_kernel`
