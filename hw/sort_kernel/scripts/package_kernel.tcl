@@ -18,6 +18,18 @@ set path_to_hdl "./obj/verilog"
 set path_to_packaged "./obj/packaged_kernel"
 set path_to_tmp_project "./obj/tmp_kernel_pack"
 
+set coreroot ../../cores/
+#
+if {[string match "xilinx_u50_gen3x16_xdma*" ${device}]} {
+	set coredir "${coreroot}/coregen/u50/"
+	puts "Loading float cores: ${coredir}"
+	source ${coreroot}/fp_import.tcl
+	addFpCores ${coredir}
+	puts "xilinx_u50_gen3x16_xdma detected"
+} else {
+	puts "xilinx_u50_gen3x16_xdma NOT detected"
+}
+
 create_project -force kernel_pack $path_to_tmp_project 
 add_files -norecurse [glob $path_to_hdl/*.v]
 update_compile_order -fileset sources_1

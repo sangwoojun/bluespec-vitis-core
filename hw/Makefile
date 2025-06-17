@@ -1,5 +1,5 @@
 TARGET := hw
-PROJECT := bancroft_compress
+PROJECT := sort
 PLATFORM ?= xilinx_u50_gen3x16_xdma_5_202210_1
 HOSTDIR := ../sw/$(PROJECT)_host/
 CONFIGDIR := ./configs
