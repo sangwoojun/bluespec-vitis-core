@@ -5,6 +5,7 @@ import Vector::*;
 
 import BLMergeSorterSingle::*;
 import Serializer::*;
+import BLRadixSorter::*;
 
 typedef 2 MemPortCnt;
 
@@ -66,6 +67,8 @@ module mkKernelMain(KernelMainIfc);
 	//////////////////////////////////////////////////////////////////////////
 
 	FIFO#(Bool) startQ <- mkFIFO;
+
+	BLRadixBurstSorterIfc#(7,256,8) radix <- mkBLRadixBurstSorter;
 
 	BLMergeSorterMemoryManagerIfc#(MergeSrcCount) mergeSorterMemoryMan <- mkBLMergeSorterMemoryManager;
 	BLMergeSorterSingleIfc#(MergeSrcCount, TAdd#(KeyBits,ValBits), KeyBits, 1)  mergeSorter <- mkBLMergeSorterSingle2;

@@ -8,19 +8,19 @@ BLIB_DIR = $(ROOT_DIR)/../bluelib/src
 CORES_DIR = $(ROOT_DIR)/cores/
 COREGEN_DIR = $(CORES_DIR)/coregen/
 
-.PHONY: all verilog cores
+.PHONY: all verilog
 
 MODULEPATH=
 
 VIVADO := $(XILINX_VIVADO)/bin/vivado
 
-all: verilog obj/kernel.xo
+all: obj/kernel.xo
 
-obj/kernel.xo: ./kernel.xml ./scripts/package_kernel.tcl ./scripts/gen_xo.tcl $(wildcard ./obj/verilog/*.v) verilog
+obj/kernel.xo: ./kernel.xml ./scripts/package_kernel.tcl ./scripts/gen_xo.tcl $(wildcard ./obj/verilog/*.v) verilog cores
 	mkdir -p obj
 	$(VIVADO) -mode batch -tempDir obj -source scripts/gen_xo.tcl -tclargs $(BUILD_DIR)/kernel.xo kernel hw $(PLATFORM)
 
-verilog: $(wildcard *.bsv) $(wildcard *.v) cores
+verilog: $(wildcard *.bsv) $(wildcard *.v) 
 	mkdir -p obj
 	mkdir -p obj/verilog
 	bsc  $(BSCFLAGS) $(BSCFLAGS_SYNTH) -remove-dollar -p +:$(MODULEPATH):$(BLIB_DIR) -verilog -u -g kernel KernelTop.bsv 

@@ -1,9 +1,5 @@
 TARGET := hw
-<<<<<<< HEAD
-PROJECT := sort
-=======
-PROJECT := example
->>>>>>> 22f21ee5cd4bf2084cb1eec451aa57e64cbd5d0e
+PROJECT := bancroft_compress
 PLATFORM ?= xilinx_u50_gen3x16_xdma_5_202210_1
 HOSTDIR := ../sw/$(PROJECT)_host/
 CONFIGDIR := ./configs
