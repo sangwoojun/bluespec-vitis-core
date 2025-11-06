@@ -19,6 +19,7 @@ using namespace std;
 // XRT includes
 #include "xrt/xrt_bo.h"
 #include <experimental/xrt_xclbin.h>
+#include <experimental/xrt_ip.h>
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_kernel.h"
 
@@ -38,6 +39,7 @@ int main(int argc, char** argv) {
 	cout << "Create Kernel" << endl;
 	fflush(stdout);
 	auto krnl = xrt::kernel(device, xclbin_uuid, "kernel:{kernel_1}");
+	auto ip = xrt::ip(device, xclbin_uuid, "kernel:{kernel_1}");
 
 	cout << "[Xilinx Alveo U50]" << endl;
 	cout << "Allocate Buffer in Global Memory" << endl;
@@ -58,6 +60,13 @@ int main(int argc, char** argv) {
 	fflush(stdout);
 	boIn.sync(XCL_BO_SYNC_BO_TO_DEVICE);
 	boOut.sync(XCL_BO_SYNC_BO_TO_DEVICE);
+
+
+
+	ip.write_register(0, 4);
+	int t = ip.read_register(0);
+
+	printf( "reg: %d\n", t );
 
 	cout << "Execution of the kernel" << endl;
 	fflush(stdout);
